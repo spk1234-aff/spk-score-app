@@ -357,7 +357,7 @@
           <label class="radio-opt"><input type="radio" name="importMode" value="subtract" onchange="renderImportPreview()"> หักคะแนน (ลบออกจากค่าปัจจุบัน)</label>
           <label class="radio-opt"><input type="radio" name="importMode" value="set" onchange="renderImportPreview()"> แทนที่ค่าเดิมด้วยค่าในไฟล์</label>
         </div>
-        <p class="sub-text" style="margin:8px 0 0;">หากเลือก "หักคะแนน" แล้วผลลัพธ์ติดลบ ระบบจะปรับให้เป็น 0 อัตโนมัติ (ไม่ให้คะแนนติดลบ)</p>
+        <p class="sub-text" style="margin:8px 0 0;">หากเลือก "หักคะแนน" แล้วผลลัพธ์ติดลบ จะแสดงผลเป็น 0 ให้ทุกคนเห็นตามปกติ แต่ระบบจะจำส่วนเกินที่หักไม่หมดไว้เป็น "หนี้" และหักออกก่อนเมื่อมีคะแนนเพิ่มเข้ามาครั้งถัดไป</p>
       </div>
 
       <div id="importStatus" class="import-status hidden"></div>
@@ -784,8 +784,8 @@ function renderResults() {
       <td class="num-cell">${s.id}</td>
       <td class="name-cell">${escapeHtml(s.name)}</td>
       <td><span class="room-tag">ม.${s.grade}/${s.room}</span></td>
-      <td><span class="say-badge">${s.say}</span></td>
-      <td><span class="khun-badge">${s.khun}</span></td>
+      <td><span class="say-badge">${displayVal(s.say)}</span></td>
+      <td><span class="khun-badge">${displayVal(s.khun)}</span></td>
     </tr>
   `).join("");
   body.innerHTML = rows;
@@ -860,25 +860,29 @@ function openDetail(key) {
       <h3>${escapeHtml(s.name)}</h3>
       <p class="sub">รหัสประจำตัว ${s.id} · ม.${s.grade}/${s.room} · เลขที่ ${s.no}</p>
       <div class="detail-stats">
-        <div class="stat-box say"><div class="label">สาย</div><div class="value">${s.say}</div></div>
-        <div class="stat-box khun"><div class="label">คุณลักษณะ</div><div class="value">${s.khun}</div></div>
+        <div class="stat-box say"><div class="label">สาย</div><div class="value">${displayVal(s.say)}</div></div>
+        <div class="stat-box khun"><div class="label">คุณลักษณะ</div><div class="value">${displayVal(s.khun)}</div></div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-primary" onclick="closeDetail()">ปิด</button>
       </div>
     `;
   } else {
+    const sayDebtNote = s.say < 0 ? `<div class="match-sub" style="color:var(--bad);margin-top:4px;">ติดหนี้ ${-s.say} คะแนน (แสดงผลเป็น 0 จนกว่าจะมีคะแนนเพิ่มมาหักหนี้)</div>` : "";
+    const khunDebtNote = s.khun < 0 ? `<div class="match-sub" style="color:var(--bad);margin-top:4px;">ติดหนี้ ${-s.khun} คะแนน (แสดงผลเป็น 0 จนกว่าจะมีคะแนนเพิ่มมาหักหนี้)</div>` : "";
     modal.innerHTML = `
       <h3>${escapeHtml(s.name)}</h3>
       <p class="sub">รหัสประจำตัว ${s.id} · ม.${s.grade}/${s.room} · เลขที่ ${s.no}</p>
       <div class="score-edit-row">
         <div class="field">
-          <label>สาย</label>
+          <label>สาย (ค่าจริงในระบบ — ค่าติดลบคือหนี้สะสม)</label>
           <input type="number" id="editSay" value="${s.say}">
+          ${sayDebtNote}
         </div>
         <div class="field">
-          <label>คุณลักษณะ</label>
+          <label>คุณลักษณะ (ค่าจริงในระบบ — ค่าติดลบคือหนี้สะสม)</label>
           <input type="number" id="editKhun" value="${s.khun}">
+          ${khunDebtNote}
         </div>
       </div>
       <div class="field">
@@ -1159,7 +1163,11 @@ function computeNewVal(current, importVal, mode) {
   if (mode === "add") result = current + importVal;
   else if (mode === "subtract") result = current - importVal;
   else result = importVal; // "set"
-  return Math.max(0, result); // never allow a negative score — nets to 0 if fully cancelled out
+  return result; // may go negative — negative = "debt" carried forward, never shown to viewers directly
+}
+
+function displayVal(v) {
+  return Math.max(0, v); // what everyone sees; debt (negative raw value) always displays as 0
 }
 
 function currentImportMode() {
@@ -1207,12 +1215,12 @@ function renderImportPreview() {
     const checked = m.included && s ? "checked" : "";
 
     const signPrefix = mode === "add" ? "+" : mode === "subtract" ? "−" : "";
-    const sayClamped = s && mode === "subtract" && (curSay - m.importSay) < 0;
-    const khunClamped = s && mode === "subtract" && (curKhun - m.importKhun) < 0;
+    const sayDebt = s && newSay < 0;
+    const khunDebt = s && newKhun < 0;
     const sayChain = m.importSay === null ? '<span class="match-sub">ไม่มีในไฟล์</span>' :
-      `<span class="arrow-chain">${curSay} ${signPrefix}${m.importSay} → <span class="new-val">${s ? newSay : '-'}</span>${sayClamped ? ' <span class="match-sub">(ปรับเป็น 0)</span>' : ''}</span>`;
+      `<span class="arrow-chain">${s ? displayVal(curSay) : curSay} ${signPrefix}${m.importSay} → <span class="new-val">${s ? displayVal(newSay) : '-'}</span>${sayDebt ? ` <span class="match-sub" style="color:var(--bad);">(ติดหนี้ ${-newSay})</span>` : ''}</span>`;
     const khunChain = m.importKhun === null ? '<span class="match-sub">ไม่มีในไฟล์</span>' :
-      `<span class="arrow-chain">${curKhun} ${signPrefix}${m.importKhun} → <span class="new-val">${s ? newKhun : '-'}</span>${khunClamped ? ' <span class="match-sub">(ปรับเป็น 0)</span>' : ''}</span>`;
+      `<span class="arrow-chain">${s ? displayVal(curKhun) : curKhun} ${signPrefix}${m.importKhun} → <span class="new-val">${s ? displayVal(newKhun) : '-'}</span>${khunDebt ? ` <span class="match-sub" style="color:var(--bad);">(ติดหนี้ ${-newKhun})</span>` : ''}</span>`;
 
     return `
       <tr class="${rowClass}">
@@ -1395,7 +1403,7 @@ function exportCSV() {
     return a.no - b.no;
   });
   const header = ["เลขที่", "รหัสประจำตัว", "ชื่อ-สกุล", "ชั้น", "ห้อง", "สาย", "คุณลักษณะ"];
-  const rows = sorted.map(s => [s.no, s.id, s.name, s.grade, s.room, s.say, s.khun]);
+  const rows = sorted.map(s => [s.no, s.id, s.name, s.grade, s.room, displayVal(s.say), displayVal(s.khun)]);
   const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
