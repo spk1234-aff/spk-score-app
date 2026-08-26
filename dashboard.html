@@ -229,8 +229,8 @@ function renderAllRoomsTable() {
     rooms.forEach(r => {
       const list = students.filter(s => s.grade === g && s.room === r);
       const count = list.length;
-      const avgSay = round1(list.reduce((a,s)=>a+s.say,0) / count);
-      const avgKhun = round1(list.reduce((a,s)=>a+s.khun,0) / count);
+      const avgSay = round1(list.reduce((a,s)=>a+displayVal(s.say),0) / count);
+      const avgKhun = round1(list.reduce((a,s)=>a+displayVal(s.khun),0) / count);
       rows.push({ grade: g, room: r, count, avgSay, avgKhun });
     });
   });
@@ -260,6 +260,10 @@ function round1(n) {
   return Math.round(n * 10) / 10;
 }
 
+function displayVal(v) {
+  return Math.max(0, v); // debt (negative raw value from over-deduction) always displays as 0
+}
+
 async function loadData() {
   document.getElementById("loadingState").classList.remove("hidden");
   document.getElementById("errorState").classList.add("hidden");
@@ -287,9 +291,9 @@ async function loadData() {
 
 function renderOverview() {
   const total = students.length;
-  const avgSay = round1(students.reduce((a,s)=>a+s.say,0) / total);
-  const avgKhun = round1(students.reduce((a,s)=>a+s.khun,0) / total);
-  const zeroCount = students.filter(s => s.say === 0 && s.khun === 0).length;
+  const avgSay = round1(students.reduce((a,s)=>a+displayVal(s.say),0) / total);
+  const avgKhun = round1(students.reduce((a,s)=>a+displayVal(s.khun),0) / total);
+  const zeroCount = students.filter(s => displayVal(s.say) === 0 && displayVal(s.khun) === 0).length;
   document.getElementById("kpiTotal").textContent = total.toLocaleString();
   document.getElementById("kpiAvgSay").textContent = avgSay;
   document.getElementById("kpiAvgKhun").textContent = avgKhun;
@@ -299,10 +303,10 @@ function renderOverview() {
 function statsForGrade(grade) {
   const list = students.filter(s => s.grade === grade);
   const count = list.length;
-  const avgSay = count ? round1(list.reduce((a,s)=>a+s.say,0)/count) : 0;
-  const avgKhun = count ? round1(list.reduce((a,s)=>a+s.khun,0)/count) : 0;
-  const maxSay = count ? Math.max(...list.map(s=>s.say)) : 0;
-  const maxKhun = count ? Math.max(...list.map(s=>s.khun)) : 0;
+  const avgSay = count ? round1(list.reduce((a,s)=>a+displayVal(s.say),0)/count) : 0;
+  const avgKhun = count ? round1(list.reduce((a,s)=>a+displayVal(s.khun),0)/count) : 0;
+  const maxSay = count ? Math.max(...list.map(s=>displayVal(s.say))) : 0;
+  const maxKhun = count ? Math.max(...list.map(s=>displayVal(s.khun))) : 0;
   return { grade, count, avgSay, avgKhun, maxSay, maxKhun, list };
 }
 
@@ -381,11 +385,11 @@ function renderRoomChart(grade, list) {
   const labels = rooms.map(r => "ห้อง " + r);
   const avgSayByRoom = rooms.map(r => {
     const roomList = list.filter(s => s.room === r);
-    return round1(roomList.reduce((a,s)=>a+s.say,0) / roomList.length);
+    return round1(roomList.reduce((a,s)=>a+displayVal(s.say),0) / roomList.length);
   });
   const avgKhunByRoom = rooms.map(r => {
     const roomList = list.filter(s => s.room === r);
-    return round1(roomList.reduce((a,s)=>a+s.khun,0) / roomList.length);
+    return round1(roomList.reduce((a,s)=>a+displayVal(s.khun),0) / roomList.length);
   });
 
   if (chartRooms) chartRooms.destroy();
@@ -407,15 +411,15 @@ function renderRoomChart(grade, list) {
 }
 
 function renderTopTable(list) {
-  const sorted = list.slice().sort((a,b) => (b.say + b.khun) - (a.say + a.khun)).slice(0, 10);
+  const sorted = list.slice().sort((a,b) => (displayVal(b.say) + displayVal(b.khun)) - (displayVal(a.say) + displayVal(a.khun))).slice(0, 10);
   const body = document.getElementById("topTableBody");
   body.innerHTML = sorted.map((s, i) => `
     <tr>
       <td><span class="rank">${i+1}</span></td>
       <td>${escapeHtml(s.name)}</td>
       <td>ม.${s.grade}/${s.room}</td>
-      <td class="say-badge">${s.say}</td>
-      <td class="khun-badge">${s.khun}</td>
+      <td class="say-badge">${displayVal(s.say)}</td>
+      <td class="khun-badge">${displayVal(s.khun)}</td>
     </tr>
   `).join("");
 }
