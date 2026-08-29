@@ -736,7 +736,10 @@ function switchTab(tab) {
   document.getElementById("panelSearch").classList.toggle("hidden", tab !== "search");
   document.getElementById("panelImport").classList.toggle("hidden", tab !== "import");
   document.getElementById("panelLog").classList.toggle("hidden", tab !== "log");
-  if (tab === "log") renderLog();
+  if (tab === "log") {
+    renderLog();
+    loadLog().then(log => { editLog = log; renderLog(); }); // refresh with latest from server
+  }
 }
 
 function getFiltered() {
@@ -858,6 +861,7 @@ async function submitLogin() {
   if (ok) {
     isAdmin = true;
     adminPasscodeEntered = val;
+    editLog = await loadLog(); // re-fetch now that we actually have a valid passcode to send
     updateAdminUI();
     closeLogin();
     toast("เข้าสู่โหมดผู้ดูแลแล้ว");
