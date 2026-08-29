@@ -264,18 +264,23 @@ function displayVal(v) {
   return Math.max(0, v); // debt (negative raw value from over-deduction) always displays as 0
 }
 
+let loadRequestId = 0;
+
 async function loadData() {
+  const myRequestId = ++loadRequestId; // guards against a stale, slower earlier request overwriting a newer successful one
   document.getElementById("loadingState").classList.remove("hidden");
   document.getElementById("errorState").classList.add("hidden");
   document.getElementById("content").classList.add("hidden");
   try {
     const res = await fetch(API_URL + "?action=students");
     const data = await res.json();
+    if (myRequestId !== loadRequestId) return; // a newer call has since started; drop this stale result
     if (!data || !data.ok || !Array.isArray(data.students) || data.students.length === 0) {
       throw new Error("no data");
     }
     students = data.students;
     document.getElementById("loadingState").classList.add("hidden");
+    document.getElementById("errorState").classList.add("hidden");
     document.getElementById("content").classList.remove("hidden");
     renderOverview();
     renderGradeCards();
@@ -284,6 +289,7 @@ async function loadData() {
     const firstGrade = Array.from(new Set(students.map(s => s.grade))).sort((a,b)=>a-b)[0];
     selectGrade(firstGrade);
   } catch (e) {
+    if (myRequestId !== loadRequestId) return; // stale failure from an old call — ignore it
     document.getElementById("loadingState").classList.add("hidden");
     document.getElementById("errorState").classList.remove("hidden");
   }
