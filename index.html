@@ -496,7 +496,8 @@ async function cloudGetStudents() {
 
 async function cloudGetLog() {
   try {
-    const res = await fetch(API_URL + "?action=log");
+    const pc = encodeURIComponent(adminPasscodeEntered || "");
+    const res = await fetch(API_URL + "?action=log&passcode=" + pc);
     const data = await res.json();
     return (data && data.ok) ? data.log : [];
   } catch (e) {
