@@ -88,8 +88,18 @@
   }
   .btn-check.pass{color:var(--good);border-color:var(--good);}
   .btn-check.pass:hover{background:var(--good-bg);}
+  .btn-check.pass.selected{background:var(--good);color:#fff;}
   .btn-check.fail{color:var(--bad);border-color:var(--bad);}
   .btn-check.fail:hover{background:var(--bad-bg);}
+  .btn-check.fail.selected{background:var(--bad);color:#fff;}
+  .save-row{display:flex;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+  .btn-save{
+    height:38px;padding:0 18px;border-radius:8px;border:1px solid var(--navy);
+    background:var(--navy);color:#fff;font-size:13.5px;font-family:'Sarabun',sans-serif;
+    cursor:pointer;font-weight:600;
+  }
+  .btn-save:hover{background:var(--navy-deep);}
+  .btn-save:disabled{background:var(--card);color:var(--ink-faint);border-color:var(--line);cursor:not-allowed;}
   .status-tag{font-size:12px;padding:3px 9px;border-radius:999px;font-weight:600;}
   .status-tag.fail{background:var(--bad-bg);color:var(--bad);}
 
@@ -237,6 +247,7 @@ let uniformConfig = { dates: ["","","","",""], closed: false };
 let isAdmin = false;
 let adminPasscodeEntered = null;
 let testMode = false;
+let selections = {}; // studentId -> { item: "pass"|"fail", ... } — chosen but not yet saved
 
 function toast(msg) {
   const t = document.getElementById("toast");
@@ -420,9 +431,10 @@ function renderStudentList() {
 function renderStudentCard(s) {
   const st = studentStatus(s);
   const items = applicableItems(s.name);
-  const pending = items.filter(item => st[item] !== "pass");
+  const pendingItems = items.filter(item => st[item] !== "pass");
+  const sel = selections[s.id] || {};
 
-  const rows = pending.map(item => {
+  const rows = pendingItems.map(item => {
     const failTag = st[item] === "fail" ? '<span class="status-tag fail">ไม่ผ่านล่าสุด</span>' : "";
     const hairNoteControl = item === "hair" ? `
       <select class="hair-note-select" id="hairNote-${s.id}">
@@ -431,46 +443,86 @@ function renderStudentCard(s) {
         <option value="long" ${st.hairNote === "long" ? "selected" : ""}>ผมยาว</option>
         <option value="lgbtq" ${st.hairNote === "lgbtq" ? "selected" : ""}>ผม LGBTQ+</option>
       </select>` : "";
+    const passSelected = sel[item] === "pass" ? "selected" : "";
+    const failSelected = sel[item] === "fail" ? "selected" : "";
     return `
       <div class="item-row">
         <div class="item-label">${ITEM_LABELS[item]} ${failTag}</div>
         <div class="item-controls">
           ${hairNoteControl}
-          <button class="btn-check pass" onclick="markItem('${s.id}','${item}','pass')">ผ่าน</button>
-          <button class="btn-check fail" onclick="markItem('${s.id}','${item}','fail')">ไม่ผ่าน</button>
+          <button class="btn-check pass ${passSelected}" onclick="selectItem('${s.id}','${item}','pass')">ผ่าน</button>
+          <button class="btn-check fail ${failSelected}" onclick="selectItem('${s.id}','${item}','fail')">ไม่ผ่าน</button>
         </div>
       </div>
     `;
   }).join("");
+
+  const selCount = Object.keys(sel).length;
 
   return `
     <div class="student-card">
       <div class="name">${escapeHtml(s.name)}</div>
       <div class="meta">เลขที่ ${s.no} · รหัส ${s.id} · ม.${s.grade}/${s.room}</div>
       ${rows}
+      <div class="save-row">
+        <button class="btn-save" id="saveBtn-${s.id}" onclick="saveStudent('${s.id}')" ${selCount === 0 ? "disabled" : ""}>
+          บันทึก${selCount > 0 ? ` (${selCount} รายการ)` : ""}
+        </button>
+      </div>
     </div>
   `;
 }
 
-async function markItem(id, item, status) {
+function selectItem(id, item, status) {
   if (!isCheckingAllowed()) {
     toast("ยังบันทึกไม่ได้ เนื่องจากผู้ดูแลยังไม่กำหนดวันตรวจ");
     return;
   }
-  let hairNote = "";
-  if (item === "hair") {
-    const sel = document.getElementById("hairNote-" + id);
-    if (sel) hairNote = sel.value;
+  if (!selections[id]) selections[id] = {};
+  if (selections[id][item] === status) {
+    delete selections[id][item]; // clicking the same choice again deselects it
+  } else {
+    selections[id][item] = status;
   }
-  const res = await apiPost({ action: saveItemActionName(), id, item, status, hairNote });
-  if (!res || !res.ok) {
-    toast("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
-    return;
-  }
+  renderStudentList();
+}
+
+async function saveStudent(id) {
+  const sel = selections[id];
+  if (!sel || Object.keys(sel).length === 0) return;
+
+  const btn = document.getElementById("saveBtn-" + id);
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "กำลังบันทึก...";
+
+  const hairNoteEl = document.getElementById("hairNote-" + id);
+  const hairNote = hairNoteEl ? hairNoteEl.value : "";
+
+  const items = Object.keys(sel);
+  const results = await Promise.all(items.map(item =>
+    apiPost({ action: saveItemActionName(), id, item, status: sel[item], hairNote: item === "hair" ? hairNote : "" })
+  ));
+
   if (!uniformRows[id]) uniformRows[id] = { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
-  uniformRows[id][item] = status;
-  if (item === "hair" && hairNote) uniformRows[id].hairNote = hairNote;
-  toast("บันทึกแล้ว");
+  let allOk = true;
+  items.forEach((item, i) => {
+    if (results[i] && results[i].ok) {
+      uniformRows[id][item] = sel[item];
+      if (item === "hair" && hairNote) uniformRows[id].hairNote = hairNote;
+      delete selections[id][item];
+    } else {
+      allOk = false;
+    }
+  });
+  if (selections[id] && Object.keys(selections[id]).length === 0) delete selections[id];
+
+  toast(allOk ? "บันทึกแล้ว" : "บันทึกไม่สำเร็จบางรายการ ลองใหม่อีกครั้ง");
+
+  if (!allOk && btn) {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
   renderStudentList();
 }
 
