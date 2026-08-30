@@ -67,6 +67,13 @@
   }
   .round-banner.inactive{background:#F1EEE4;color:var(--ink-soft);}
 
+  .teacher-notice{
+    display:flex;align-items:flex-start;gap:8px;background:var(--blue-bg);color:var(--blue);
+    border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:12px;line-height:1.6;
+  }
+  .teacher-notice i{margin-top:2px;flex-shrink:0;}
+  .teacher-notice b{font-weight:700;}
+
   .search-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center;}
   select{
     height:42px;border-radius:10px;border:1px solid var(--line);background:var(--card);
@@ -140,6 +147,12 @@
   .modal-actions{display:flex;gap:10px;margin-top:18px;}
   .modal-actions .btn{flex:1;}
 
+  .footer-motto{
+    text-align:center;margin-top:36px;padding:26px 20px;background:var(--navy);border-radius:var(--radius);color:#fff;
+  }
+  .footer-motto .quote{font-family:'Kanit',sans-serif;font-size:17px;font-weight:600;margin:0 0 6px;color:var(--gold-light);}
+  .footer-motto .credit{font-size:12px;color:#B9C6D4;margin:0;}
+
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy-deep);color:#fff;padding:11px 20px;border-radius:999px;font-size:13.5px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s;}
   .toast.show{opacity:1;}
 </style>
@@ -184,6 +197,10 @@
 
     <!-- ========== RECORD VIEW ========== -->
     <div id="viewRecord" style="margin-top:20px;">
+      <div class="teacher-notice">
+        <i class="ti ti-info-circle"></i>
+        หน้านี้สำหรับ<b>คุณครูกลุ่มงานกิจการนักเรียน</b>ใช้บันทึกข้อมูลการรับบัตรเข้าห้องสอบเท่านั้น หากท่านไม่ได้อยู่ในกลุ่มงานนี้ กรุณาอย่าบันทึกข้อมูลในหน้านี้
+      </div>
       <div id="roundBanner" class="round-banner">กำลังโหลดข้อมูลช่วงเวลา...</div>
 
       <div class="search-row">
@@ -231,6 +248,11 @@
       </p>
       <button class="btn btn-danger" onclick="confirmFinalizeExam()">ปิดช่วงรับบัตร (ช่วงที่เปิดอยู่ตอนนี้)</button>
     </div>
+  </div>
+
+  <div class="footer-motto">
+    <p class="quote">นักเรียนโรงเรียนโซ่พิสัยพิทยาคม ต้องเป็น "คนดี มีปัญญา"</p>
+    <p class="credit">ด้วยความปรารถนาดีจากกลุ่มงานบริหารทั่วไปและกิจการนักเรียน โรงเรียนโซ่พิสัยพิทยาคม</p>
   </div>
 
 </div>
