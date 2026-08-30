@@ -129,6 +129,8 @@
   .btn:hover{background:#F1EEE4;}
   .btn-primary{background:var(--navy);border-color:var(--navy);color:#fff;}
   .btn-primary:hover{background:var(--navy-deep);}
+  .btn-danger{background:var(--bad);border-color:var(--bad);color:#fff;}
+  .btn-danger:hover{opacity:.9;}
 
   .overlay{position:fixed;inset:0;background:rgba(20,25,30,0.5);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;z-index:50;overflow-y:auto;}
   .modal{background:var(--card);border-radius:14px;max-width:420px;width:100%;padding:24px;}
@@ -217,9 +219,25 @@
         <div class="field"><label>วันที่สิ้นสุด</label><input type="date" id="endDateInput"></div>
       </div>
       <button class="btn btn-primary" onclick="saveExamConfigDates()">บันทึกช่วงเวลา</button>
+      <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
+      <p style="font-size:13.5px;color:var(--ink-soft);margin:0 0 12px;">
+        เมื่อกดปิดช่วงรับบัตร นักเรียนที่ยังไม่มารับบัตร จะถูกเพิ่มคะแนนความประพฤติ 50 คะแนนทันที (ทำครั้งเดียว ย้อนกลับไม่ได้)
+      </p>
+      <button class="btn btn-danger" onclick="confirmFinalizeExam()">ปิดช่วงรับบัตร</button>
     </div>
   </div>
 
+</div>
+
+<div id="confirmExamOverlay" class="overlay hidden">
+  <div class="modal">
+    <h3>ยืนยันการปิดช่วงรับบัตร</h3>
+    <p class="sub">นักเรียนที่ยังไม่มารับบัตร จะถูกเพิ่มคะแนนความประพฤติ 50 คะแนนทันที การกระทำนี้ย้อนกลับไม่ได้</p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeConfirmExam()">ยกเลิก</button>
+      <button class="btn btn-danger" onclick="doFinalizeExam()">ยืนยันปิดช่วงรับบัตร</button>
+    </div>
+  </div>
 </div>
 
 <div id="loginOverlay" class="overlay hidden">
@@ -422,7 +440,12 @@ function uniformBadgeHtml(s) {
       ? `<span class="status-pill info">ทรงผม: ${HAIR_NOTE_LABELS[note] || note}</span>`
       : `<span class="status-pill neutral">ยังไม่ระบุทรงผม</span>`;
   }
-  return badge + hairBadge;
+  let penaltyBadge = "";
+  const examSt = examRows[s.id];
+  if (examSt && examSt.received === "penalized") {
+    penaltyBadge = `<span class="status-pill warn">เคยไม่มารับบัตร (หักคะแนนไปแล้ว)</span>`;
+  }
+  return badge + hairBadge + penaltyBadge;
 }
 
 function renderRecordList() {
@@ -547,10 +570,15 @@ function renderStatusTable() {
   const receivedCount = list.filter(s => examRows[s.id] && examRows[s.id].received === "yes").length;
 
   const rows = list.map(s => {
-    const received = examRows[s.id] && examRows[s.id].received === "yes";
-    const pill = received
-      ? `<span class="status-pill pass">รับบัตรแล้ว</span>`
-      : `<span class="status-pill warn">ยังไม่รับบัตร</span>`;
+    const status = examRows[s.id] ? examRows[s.id].received : "";
+    let pill;
+    if (status === "yes") {
+      pill = `<span class="status-pill pass">รับบัตรแล้ว</span>`;
+    } else if (status === "penalized") {
+      pill = `<span class="status-pill warn">ไม่มารับบัตร (หักคะแนนแล้ว)</span>`;
+    } else {
+      pill = `<span class="status-pill neutral">ยังไม่รับบัตร</span>`;
+    }
     return `<tr><td>${s.no}</td><td>${escapeHtml(s.name)}</td><td>${pill}</td></tr>`;
   }).join("");
 
@@ -635,6 +663,25 @@ async function saveExamConfigDates() {
     renderRecordList();
   } else {
     toast("บันทึกไม่สำเร็จ");
+  }
+}
+
+function confirmFinalizeExam() {
+  document.getElementById("confirmExamOverlay").classList.remove("hidden");
+}
+function closeConfirmExam() {
+  document.getElementById("confirmExamOverlay").classList.add("hidden");
+}
+
+async function doFinalizeExam() {
+  closeConfirmExam();
+  const res = await apiPost({ action: "finalizeExamCard", passcode: adminPasscodeEntered });
+  if (res && res.ok) {
+    const count = res.result ? res.result.penalizedCount : 0;
+    toast(`ปิดช่วงรับบัตรสำเร็จ — หักคะแนน ${count} คน`);
+    await loadAll();
+  } else {
+    toast("ปิดช่วงรับบัตรไม่สำเร็จ ลองใหม่อีกครั้ง");
   }
 }
 
