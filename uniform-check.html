@@ -141,6 +141,10 @@
       <span class="dot"></span>
       <span id="adminPillText">โหมดผู้ดูแล</span>
     </div>
+    <div class="admin-pill" id="testModePill" onclick="onTestModeToggle()">
+      <span class="dot"></span>
+      <span id="testModePillText">โหมดทดสอบ</span>
+    </div>
   </div>
 </div>
 
@@ -158,6 +162,7 @@
     <h2>ตรวจเครื่องแต่งกาย</h2>
     <p class="hint">ครูที่ปรึกษาบันทึกผลการตรวจได้เลยโดยไม่ต้องเข้าสู่ระบบ</p>
 
+    <div id="testModeBanner" class="round-banner hidden" style="background:#FBEAE6;color:#B24334;">โหมดทดสอบ — ข้อมูลที่บันทึกในหน้านี้จะไม่ส่งผลต่อการตรวจจริงหรือคะแนนนักเรียนจริงเลย</div>
     <div id="roundBanner" class="round-banner">กำลังโหลดข้อมูลรอบตรวจ...</div>
 
     <div class="search-row">
@@ -231,6 +236,7 @@ let uniformRows = {}; // id -> {hair,hairNote,nail,sock,bow}
 let uniformConfig = { dates: ["","","","",""], closed: false };
 let isAdmin = false;
 let adminPasscodeEntered = null;
+let testMode = false;
 
 function toast(msg) {
   const t = document.getElementById("toast");
@@ -280,11 +286,28 @@ async function apiPost(payload) {
 
 /* ===================== Load ===================== */
 
+function configActionName() { return testMode ? "uniformConfigTest" : "uniformConfig"; }
+function statusActionName() { return testMode ? "uniformStatusTest" : "uniformStatus"; }
+function saveItemActionName() { return testMode ? "saveUniformItemTest" : "saveUniformItem"; }
+function saveConfigActionName() { return testMode ? "saveUniformConfigTest" : "saveUniformConfig"; }
+function finalizeActionName() { return testMode ? "finalizeUniformRoundTest" : "finalizeUniformRound"; }
+
+function onTestModeToggle() {
+  testMode = !testMode;
+  const pill = document.getElementById("testModePill");
+  const pillText = document.getElementById("testModePillText");
+  pill.classList.toggle("on", testMode);
+  pillText.textContent = testMode ? "โหมดทดสอบ (เปิดอยู่)" : "โหมดทดสอบ";
+  document.getElementById("testModeBanner").classList.toggle("hidden", !testMode);
+  toast(testMode ? "เปิดโหมดทดสอบแล้ว — ข้อมูลจะไม่กระทบระบบจริง" : "ปิดโหมดทดสอบแล้ว — กลับสู่ข้อมูลจริง");
+  loadAll();
+}
+
 async function loadAll() {
   const [studentsRes, configRes, statusRes] = await Promise.all([
     apiGet("students"),
-    apiGet("uniformConfig"),
-    apiGet("uniformStatus")
+    apiGet(configActionName()),
+    apiGet(statusActionName())
   ]);
 
   if (studentsRes && studentsRes.ok) students = studentsRes.students;
@@ -425,7 +448,7 @@ async function markItem(id, item, status) {
     const sel = document.getElementById("hairNote-" + id);
     if (sel) hairNote = sel.value;
   }
-  const res = await apiPost({ action: "saveUniformItem", id, item, status, hairNote });
+  const res = await apiPost({ action: saveItemActionName(), id, item, status, hairNote });
   if (!res || !res.ok) {
     toast("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
     return;
@@ -501,7 +524,7 @@ function fillConfigInputs() {
 
 async function saveUniformConfigDates() {
   const dates = [1, 2, 3, 4, 5].map(i => document.getElementById("date" + i).value || "");
-  const res = await apiPost({ action: "saveUniformConfig", passcode: adminPasscodeEntered, dates });
+  const res = await apiPost({ action: saveConfigActionName(), passcode: adminPasscodeEntered, dates });
   if (res && res.ok) {
     uniformConfig = { dates, closed: false };
     toast("บันทึกวันที่ตรวจแล้ว");
@@ -513,6 +536,12 @@ async function saveUniformConfigDates() {
 }
 
 function confirmFinalize() {
+  const modal = document.querySelector('#confirmOverlay .modal .sub');
+  if (testMode) {
+    modal.textContent = "โหมดทดสอบ: จะจำลองผลว่ามีนักเรียนกี่คนที่ยังไม่ผ่านครบ โดยไม่แตะคะแนนจริงหรือประวัติการแก้ไขจริงเลย";
+  } else {
+    modal.textContent = 'นักเรียนที่ยังตรวจไม่ผ่านครบทุกรายการ จะถูกปรับสถานะเป็น "ยังไม่ตรวจ" และเพิ่มคะแนนความประพฤติ 50 คะแนนทันที การกระทำนี้ย้อนกลับไม่ได้';
+  }
   document.getElementById("confirmOverlay").classList.remove("hidden");
 }
 function closeConfirm() {
@@ -521,10 +550,10 @@ function closeConfirm() {
 
 async function doFinalize() {
   closeConfirm();
-  const res = await apiPost({ action: "finalizeUniformRound", passcode: adminPasscodeEntered });
+  const res = await apiPost({ action: finalizeActionName(), passcode: adminPasscodeEntered });
   if (res && res.ok) {
     const count = res.result ? res.result.penalizedCount : 0;
-    toast(`ปิดรอบสำเร็จ — ปรับคะแนน ${count} คน`);
+    toast(testMode ? `ทดสอบเสร็จสิ้น — จะมี ${count} คนที่โดนปรับ (ไม่กระทบจริง)` : `ปิดรอบสำเร็จ — ปรับคะแนน ${count} คน`);
     await loadAll();
   } else {
     toast("ปิดรอบไม่สำเร็จ ลองใหม่อีกครั้ง");
