@@ -68,9 +68,11 @@
     box-shadow:0 8px 20px rgba(22,50,79,0.08);
   }
   .menu-card .icon{
-    width:46px;height:46px;border-radius:10px;background:var(--gold-light);
+    width:56px;height:56px;border-radius:14px;background:var(--gold-light);
     display:flex;align-items:center;justify-content:center;color:#8A6A17;font-size:22px;
+    flex-shrink:0;
   }
+  .menu-card .icon svg{width:34px;height:34px;display:block;}
   .menu-card .icon.blue{background:#E4ECF3;color:#1E4F73;}
   .menu-card h3{font-size:16px;font-weight:600;margin:0;color:var(--ink);}
   .menu-card p{font-size:13.5px;color:var(--ink-soft);margin:0;flex:1;}
@@ -121,14 +123,32 @@
   <div class="menu-grid">
 
     <a href="score-check.html" class="menu-card">
-      <div class="icon"><i class="ti ti-clipboard-check"></i></div>
+      <div class="icon">
+        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <rect x="13" y="9" width="34" height="46" rx="5" fill="#FFFFFF" stroke="#C9972F" stroke-width="2"/>
+          <rect x="22" y="5" width="16" height="9" rx="2.5" fill="#C9972F"/>
+          <line x1="20" y1="24" x2="40" y2="24" stroke="#8A6A17" stroke-width="2.4" stroke-linecap="round"/>
+          <line x1="20" y1="32" x2="40" y2="32" stroke="#8A6A17" stroke-width="2.4" stroke-linecap="round"/>
+          <line x1="20" y1="40" x2="33" y2="40" stroke="#8A6A17" stroke-width="2.4" stroke-linecap="round"/>
+          <circle cx="46" cy="46" r="13" fill="#C9972F" stroke="#FFFFFF" stroke-width="2"/>
+          <path d="M40 46.5l4 4 8-9" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
       <h3>ตรวจสอบคะแนนความประพฤติและสาย</h3>
       <p>ค้นหาคะแนนรายบุคคล เพิ่ม/หักคะแนน และนำเข้าข้อมูลคะแนนรายเดือน</p>
       <span class="go">เปิดใช้งาน <i class="ti ti-arrow-right"></i></span>
     </a>
 
     <a href="uniform-check.html" class="menu-card">
-      <div class="icon blue"><i class="ti ti-shirt"></i></div>
+      <div class="icon blue">
+        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <path d="M23 9 L14 15 L18 24 L23 20.5 L23 55 L41 55 L41 20.5 L46 24 L50 15 L41 9 L35 13 L29 13 Z"
+                fill="#FFFFFF" stroke="#1E4F73" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M29 13 L32 17 L35 13" fill="none" stroke="#1E4F73" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="46" cy="46" r="13" fill="#1E4F73" stroke="#FFFFFF" stroke-width="2"/>
+          <path d="M40 46.5l4 4 8-9" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
       <h3>ตรวจเครื่องแต่งกาย</h3>
       <p>บันทึกผลตรวจเครื่องแต่งกายประจำเดือน ผม เล็บ ถุงเท้า และโบว์</p>
       <span class="go">เปิดใช้งาน <i class="ti ti-arrow-right"></i></span>
