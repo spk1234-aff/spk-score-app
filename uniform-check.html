@@ -132,6 +132,12 @@
   .modal-actions{display:flex;gap:10px;margin-top:18px;}
   .modal-actions .btn{flex:1;}
 
+  .footer-motto{
+    text-align:center;margin-top:36px;padding:26px 20px;background:var(--navy);border-radius:var(--radius);color:#fff;
+  }
+  .footer-motto .quote{font-family:'Kanit',sans-serif;font-size:17px;font-weight:600;margin:0 0 6px;color:var(--gold-light);}
+  .footer-motto .credit{font-size:12px;color:#B9C6D4;margin:0;}
+
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy-deep);color:#fff;padding:11px 20px;border-radius:999px;font-size:13.5px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s;}
   .toast.show{opacity:1;}
 </style>
@@ -203,6 +209,12 @@
       <button class="btn btn-danger" onclick="confirmFinalize()">ปิดรอบตรวจ</button>
       <span id="roundClosedTag" class="hint" style="margin-left:10px;"></span>
     </div>
+  </div>
+
+
+  <div class="footer-motto">
+    <p class="quote">นักเรียนโรงเรียนโซ่พิสัยพิทยาคม ต้องเป็น "คนดี มีปัญญา"</p>
+    <p class="credit">ด้วยความปรารถนาดีจากกลุ่มงานบริหารทั่วไปและกิจการนักเรียน โรงเรียนโซ่พิสัยพิทยาคม</p>
   </div>
 
 </div>
