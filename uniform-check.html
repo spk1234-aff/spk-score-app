@@ -384,10 +384,20 @@ function isFullyPassed(s) {
   return applicableItems(s.name).every(item => st[item] === "pass");
 }
 
+function isCheckingAllowed() {
+  if (testMode) return true; // sandbox — always open for free experimentation
+  return uniformConfig.dates.some(d => d); // real mode needs at least one date configured by admin
+}
+
 function renderStudentList() {
   const grade = document.getElementById("gradeSelect").value;
   const room = document.getElementById("roomSelect").value;
   const wrap = document.getElementById("studentListWrap");
+
+  if (!isCheckingAllowed()) {
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-lock"></i><p>ยังบันทึกไม่ได้ เนื่องจากผู้ดูแลยังไม่กำหนดวันตรวจ — รอผู้ดูแลตั้งค่าก่อน</p></div>`;
+    return;
+  }
 
   if (!grade || !room) {
     wrap.innerHTML = `<div class="empty-state"><i class="ti ti-shirt"></i><p>เลือกชั้นและห้องเพื่อเริ่มตรวจ</p></div>`;
@@ -443,6 +453,10 @@ function renderStudentCard(s) {
 }
 
 async function markItem(id, item, status) {
+  if (!isCheckingAllowed()) {
+    toast("ยังบันทึกไม่ได้ เนื่องจากผู้ดูแลยังไม่กำหนดวันตรวจ");
+    return;
+  }
   let hairNote = "";
   if (item === "hair") {
     const sel = document.getElementById("hairNote-" + id);
@@ -530,6 +544,7 @@ async function saveUniformConfigDates() {
     toast("บันทึกวันที่ตรวจแล้ว");
     renderRoundBanner();
     fillConfigInputs();
+    renderStudentList();
   } else {
     toast("บันทึกไม่สำเร็จ");
   }
