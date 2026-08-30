@@ -167,7 +167,6 @@
     <a href="index.html" class="site-nav-link">หน้าแรก</a>
     <a href="score-check.html" class="site-nav-link">ตรวจสอบคะแนนความประพฤติและสาย</a>
     <a href="uniform-check.html" class="site-nav-link">ตรวจเครื่องแต่งกาย</a>
-    <a href="guide.html" class="site-nav-link">คู่มือแก้ไขคะแนน</a>
     <a href="exam-card.html" class="site-nav-link active">รับบัตรเข้าห้องสอบ</a>
   </div>
 </div>
@@ -212,8 +211,15 @@
 
   <div class="section admin-panel hidden" id="adminPanel">
     <h2>ตั้งค่าช่วงเวลารับบัตร (ผู้ดูแล)</h2>
-    <p class="hint">กำหนดวันที่เริ่มและสิ้นสุด — บันทึกได้เฉพาะในช่วงวันที่กำหนดเท่านั้น ไม่จำกัดว่าต้องเป็นวันไหนภายในช่วง</p>
+    <p class="hint">เลือกว่ากำลังตั้งค่าช่วงกลางภาคหรือปลายภาค แล้วกำหนดวันที่เริ่ม-สิ้นสุด — บันทึกได้เฉพาะในช่วงวันที่กำหนดเท่านั้น ไม่จำกัดว่าต้องเป็นวันไหนภายในช่วง</p>
     <div class="card">
+      <div class="field">
+        <label>ช่วงที่กำลังตั้งค่า</label>
+        <select id="termSelect" style="width:100%;">
+          <option value="midterm">กลางภาค</option>
+          <option value="final">ปลายภาค</option>
+        </select>
+      </div>
       <div class="date-grid">
         <div class="field"><label>วันที่เริ่มรับบัตร</label><input type="date" id="startDateInput"></div>
         <div class="field"><label>วันที่สิ้นสุด</label><input type="date" id="endDateInput"></div>
@@ -221,9 +227,9 @@
       <button class="btn btn-primary" onclick="saveExamConfigDates()">บันทึกช่วงเวลา</button>
       <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
       <p style="font-size:13.5px;color:var(--ink-soft);margin:0 0 12px;">
-        เมื่อกดปิดช่วงรับบัตร นักเรียนที่ยังไม่มารับบัตร จะถูกเพิ่มคะแนนความประพฤติ 50 คะแนนทันที (ทำครั้งเดียว ย้อนกลับไม่ได้)
+        ปิดช่วงรับบัตรของ "ช่วงที่กำลังเปิดอยู่ตอนนี้" เท่านั้น (ข้อมูลกลางภาค/ปลายภาคแยกกันเก็บอยู่แล้ว ไม่ปนกัน) — นักเรียนที่ยังไม่มารับบัตร จะถูกเพิ่มคะแนนความประพฤติ 50 คะแนนทันที (ทำครั้งเดียว ย้อนกลับไม่ได้)
       </p>
-      <button class="btn btn-danger" onclick="confirmFinalizeExam()">ปิดช่วงรับบัตร</button>
+      <button class="btn btn-danger" onclick="confirmFinalizeExam()">ปิดช่วงรับบัตร (ช่วงที่เปิดอยู่ตอนนี้)</button>
     </div>
   </div>
 
@@ -266,8 +272,10 @@ const HAIR_NOTE_LABELS = {short:"ผมสั้น", long:"ผมยาว", lg
 
 let students = [];
 let uniformRows = {};       // id -> {hair,hairNote,nail,sock,bow}
-let examRows = {};          // id -> {received, updatedAt}
-let examConfig = { startDate: "", endDate: "" };
+let examRows = {};          // id -> {received, updatedAt} — the CURRENTLY ACTIVE term's data
+let midtermRows = {};       // id -> {received, updatedAt} — always the midterm data, for reference during final term
+let examConfig = { activeTerm: "midterm", startDate: "", endDate: "" };
+const TERM_LABELS = { midterm: "กลางภาค", final: "ปลายภาค" };
 let isAdmin = false;
 let adminPasscodeEntered = null;
 let currentView = "record"; // "record" | "status"
@@ -323,11 +331,12 @@ async function apiPost(payload) {
 /* ===================== Load ===================== */
 
 async function loadAll() {
-  const [studentsRes, uniformRes, configRes, examRes] = await Promise.all([
+  const [studentsRes, uniformRes, configRes, examRes, midtermRes] = await Promise.all([
     apiGet("students"),
     apiGet("uniformStatus"),
     apiGet("examCardConfig"),
-    apiGet("examCardStatus")
+    apiGet("examCardStatus"),
+    apiGet("examCardStatusMidterm") // always fetched — used as reference context during final term
   ]);
 
   if (studentsRes && studentsRes.ok) students = studentsRes.students;
@@ -339,6 +348,9 @@ async function loadAll() {
 
   examRows = {};
   if (examRes && examRes.ok) examRes.rows.forEach(r => { examRows[r.id] = r; });
+
+  midtermRows = {};
+  if (midtermRes && midtermRes.ok) midtermRes.rows.forEach(r => { midtermRows[r.id] = r; });
 
   renderRoundBanner();
   populateGradeOptions();
@@ -371,18 +383,19 @@ function formatThaiDate(iso) {
 
 function renderRoundBanner() {
   const el = document.getElementById("roundBanner");
+  const termLabel = TERM_LABELS[examConfig.activeTerm] || "กลางภาค";
   if (!examConfig.startDate || !examConfig.endDate) {
     el.className = "round-banner inactive";
-    el.textContent = "ยังไม่ได้กำหนดช่วงเวลารับบัตร (รอผู้ดูแลตั้งค่า)";
+    el.textContent = `ช่วงที่เปิดอยู่ตอนนี้: ${termLabel} — ยังไม่ได้กำหนดช่วงเวลารับบัตร (รอผู้ดูแลตั้งค่า)`;
     return;
   }
   const rangeText = `${formatThaiDate(examConfig.startDate)} – ${formatThaiDate(examConfig.endDate)}`;
   if (isPickupAllowed()) {
     el.className = "round-banner";
-    el.textContent = `กำลังเปิดรับบัตร (${rangeText})`;
+    el.textContent = `กำลังเปิดรับบัตรช่วง${termLabel} (${rangeText})`;
   } else {
     el.className = "round-banner inactive";
-    el.textContent = `นอกช่วงเวลารับบัตร (กำหนดไว้: ${rangeText})`;
+    el.textContent = `นอกช่วงเวลารับบัตรช่วง${termLabel} (กำหนดไว้: ${rangeText})`;
   }
 }
 
@@ -445,7 +458,18 @@ function uniformBadgeHtml(s) {
   if (examSt && examSt.received === "penalized") {
     penaltyBadge = `<span class="status-pill warn">เคยไม่มารับบัตร (หักคะแนนไปแล้ว)</span>`;
   }
-  return badge + hairBadge + penaltyBadge;
+  let midtermBadge = "";
+  if (examConfig.activeTerm === "final") {
+    const mSt = midtermRows[s.id];
+    if (mSt && mSt.received === "yes") {
+      midtermBadge = `<span class="status-pill info">กลางภาค: รับบัตรแล้ว</span>`;
+    } else if (mSt && mSt.received === "penalized") {
+      midtermBadge = `<span class="status-pill warn">กลางภาค: ไม่ได้รับบัตร (หักคะแนนแล้ว)</span>`;
+    } else {
+      midtermBadge = `<span class="status-pill neutral">กลางภาค: ไม่มีข้อมูล</span>`;
+    }
+  }
+  return badge + hairBadge + penaltyBadge + midtermBadge;
 }
 
 function renderRecordList() {
@@ -648,19 +672,22 @@ function updateAdminUI() {
 }
 
 function fillConfigInputs() {
+  document.getElementById("termSelect").value = examConfig.activeTerm || "midterm";
   document.getElementById("startDateInput").value = examConfig.startDate || "";
   document.getElementById("endDateInput").value = examConfig.endDate || "";
 }
 
 async function saveExamConfigDates() {
+  const activeTerm = document.getElementById("termSelect").value || "midterm";
   const startDate = document.getElementById("startDateInput").value || "";
   const endDate = document.getElementById("endDateInput").value || "";
-  const res = await apiPost({ action: "saveExamCardConfig", passcode: adminPasscodeEntered, startDate, endDate });
+  const res = await apiPost({ action: "saveExamCardConfig", passcode: adminPasscodeEntered, activeTerm, startDate, endDate });
   if (res && res.ok) {
-    examConfig = { startDate, endDate };
+    examConfig = { activeTerm, startDate, endDate };
     toast("บันทึกช่วงเวลาแล้ว");
     renderRoundBanner();
-    renderRecordList();
+    // switching term means the "current" dataset changed — reload everything fresh
+    await loadAll();
   } else {
     toast("บันทึกไม่สำเร็จ");
   }
