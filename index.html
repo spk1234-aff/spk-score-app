@@ -52,6 +52,34 @@
   .hero h2{font-size:24px;font-weight:600;margin:0 0 8px;color:var(--navy);}
   .hero p{font-size:14.5px;color:var(--ink-soft);margin:0;max-width:600px;}
 
+  .motto-highlight{
+    margin-top:26px;padding:32px 28px;border-radius:18px;text-align:center;
+    background:linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 100%);
+    border:1px solid var(--gold);position:relative;overflow:hidden;
+  }
+  .motto-highlight::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:4px;
+    background:linear-gradient(90deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+  }
+  .motto-highlight .motto-icon{
+    width:44px;height:44px;margin:0 auto 14px;border-radius:50%;background:var(--gold);
+    display:flex;align-items:center;justify-content:center;color:var(--navy-deep);font-size:22px;
+  }
+  .motto-highlight .motto-main{
+    font-family:'Kanit',sans-serif;font-size:22px;font-weight:700;color:#fff;margin:0 0 8px;line-height:1.4;
+  }
+  .motto-highlight .motto-sub{font-size:13px;color:var(--gold-light);margin:0;}
+  @media (max-width:600px){
+    .motto-highlight{padding:26px 18px;}
+    .motto-highlight .motto-main{font-size:18px;}
+  }
+
+  .footer-motto{
+    text-align:center;margin-top:36px;padding:26px 20px;background:var(--navy);border-radius:14px;color:#fff;
+  }
+  .footer-motto .quote{font-family:'Kanit',sans-serif;font-size:17px;font-weight:600;margin:0 0 6px;color:var(--gold-light);}
+  .footer-motto .credit{font-size:12px;color:#B9C6D4;margin:0;}
+
   .menu-grid{
     display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
     gap:18px;margin-top:28px;
@@ -119,6 +147,12 @@
   <div class="hero">
     <h2>ยินดีต้อนรับ</h2>
     <p>ระบบงานกิจการนักเรียน โรงเรียนโซ่พิสัยพิทยาคม เลือกเมนูที่ต้องการใช้งานด้านล่าง</p>
+  </div>
+
+  <div class="motto-highlight">
+    <div class="motto-icon"><i class="ti ti-award"></i></div>
+    <p class="motto-main">นักเรียนโรงเรียนโซ่พิสัยพิทยาคม ต้องเป็น "คนดี มีปัญญา"</p>
+    <p class="motto-sub">ด้วยความปรารถนาดีจากกลุ่มงานบริหารทั่วไปและกิจการนักเรียน โรงเรียนโซ่พิสัยพิทยาคม</p>
   </div>
 
   <div class="menu-grid">
