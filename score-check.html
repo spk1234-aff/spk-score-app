@@ -23,7 +23,10 @@
     --good-bg:#E6F1EC;
     --bad:#B24334;
     --bad-bg:#FBEAE6;
+    --blue:#1E4F73;
+    --blue-bg:#E4ECF3;
     --radius:10px;
+    --radius-lg:14px;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -275,6 +278,95 @@
   }
   .site-nav-link:hover{color:#E4E9EE;}
   .site-nav-link.active{color:#fff;border-bottom-color:var(--gold);font-weight:600;}
+.hero{padding:36px 0 6px;text-align:center;}
+  .hero h2{font-size:22px;font-weight:600;margin:0 0 6px;color:var(--navy);}
+  .hero p{font-size:13.5px;color:var(--ink-soft);margin:0;}
+
+  .section{margin-top:34px;}
+  .section-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .section-num{
+    width:34px;height:34px;border-radius:10px;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-family:'Kanit',sans-serif;
+    font-weight:600;font-size:16px;flex-shrink:0;
+  }
+  .section-head h2{font-size:18px;font-weight:600;margin:0;color:var(--navy);}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:20px;margin-bottom:14px;}
+  .card-row{display:flex;gap:16px;align-items:flex-start;}
+  .badge-icon{width:48px;height:48px;flex-shrink:0;}
+  .card-row .content{flex:1;}
+  .card-row .content h3{font-size:15px;font-weight:600;margin:0 0 4px;color:var(--ink);}
+  .card-row .content p{font-size:13.5px;color:var(--ink-soft);margin:0;}
+
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:640px){.two-col{grid-template-columns:1fr;}}
+
+  .qr-card{text-align:center;}
+  .qr-card img{width:110px;height:110px;border-radius:8px;border:1px solid var(--line);padding:6px;background:#fff;}
+  .qr-card .caption{font-size:12px;color:var(--ink-faint);margin-top:6px;}
+  .link-btn{
+    display:inline-flex;align-items:center;gap:6px;margin-top:12px;
+    background:var(--navy);color:#fff;text-decoration:none;
+    padding:9px 16px;border-radius:8px;font-size:13.5px;font-weight:500;
+  }
+  .link-btn:hover{background:var(--navy-deep);}
+
+  .point-list{margin:0;padding:0;list-style:none;}
+  .point-item{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line);}
+  .point-item:first-child{border-top:none;padding-top:0;}
+  .point-num{
+    width:24px;height:24px;border-radius:50%;background:var(--gold-light);color:#8A6A17;
+    font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;
+  }
+  .point-item .txt{font-size:13.5px;color:var(--ink);flex:1;}
+  .point-item .txt b{color:var(--navy);}
+  .score-badge{
+    display:inline-flex;align-items:center;gap:4px;background:var(--good-bg);color:var(--good);
+    font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;margin-left:6px;white-space:nowrap;
+  }
+
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px;}
+  @media (max-width:640px){.compare-grid{grid-template-columns:1fr;}}
+  .compare-box{border-radius:12px;padding:16px 18px;}
+  .compare-box.a{background:var(--good-bg);}
+  .compare-box.b{background:var(--gold-light);}
+  .compare-box .tag{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+  .compare-box.a .tag{color:var(--good);}
+  .compare-box.b .tag{color:#8A6A17;}
+  .compare-box .amount{font-family:'Kanit',sans-serif;font-size:20px;font-weight:600;margin:4px 0 8px;color:var(--navy);}
+  .compare-box p{font-size:13px;color:var(--ink-soft);margin:0;}
+
+  .note-box{
+    background:var(--blue-bg);border-radius:12px;padding:14px 16px;margin-top:14px;
+    font-size:13px;color:var(--blue);display:flex;gap:10px;align-items:flex-start;
+  }
+  .note-box b{display:block;margin-bottom:2px;}
+
+  .warning-box{
+    background:var(--bad-bg);border:1px solid #F0C9C0;border-radius:var(--radius-lg);
+    padding:20px;margin-top:30px;display:flex;gap:14px;align-items:flex-start;
+  }
+  .warning-box h3{font-size:15px;font-weight:700;color:var(--bad);margin:0 0 4px;}
+  .warning-box p{font-size:13.5px;color:#8C3A2C;margin:0;}
+
+  .footer-motto{
+    text-align:center;margin-top:36px;padding:26px 20px;background:var(--navy);border-radius:var(--radius-lg);color:#fff;
+  }
+  .footer-motto .quote{font-family:'Kanit',sans-serif;font-size:17px;font-weight:600;margin:0 0 6px;color:var(--gold-light);}
+  .footer-motto .credit{font-size:12px;color:#B9C6D4;margin:0;}
+
+  .contact-line{
+    font-size:12.5px;color:var(--ink-soft);text-align:center;margin-top:10px;
+  }
+  .photo-card{padding:16px;}
+  .photo-card img{width:100%;max-width:420px;display:block;margin:0 auto;border-radius:10px;border:1px solid var(--line);}
+  .cabinet-illustration{max-width:380px;margin:0 auto;}
+  .cabinet-illustration svg{width:100%;height:auto;display:block;}
+  .photo-card .cap{font-size:12.5px;color:var(--ink-soft);text-align:center;margin-top:12px;line-height:1.7;}
+  .photo-card .cap b{color:var(--navy);}
+  .cab-tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;}
+  .cab-tag.green{background:#E6F1EC;color:#2E6B4F;}
+  .cab-tag.grey{background:#EDEBE4;color:#5C5A53;}
 </style>
 </head>
 <body>
@@ -306,12 +398,12 @@
     <a href="index.html" class="site-nav-link">หน้าแรก</a>
     <a href="score-check.html" class="site-nav-link active">ตรวจสอบคะแนนความประพฤติและสาย</a>
     <a href="uniform-check.html" class="site-nav-link">ตรวจเครื่องแต่งกาย</a>
-    <a href="guide.html" class="site-nav-link">คู่มือแก้ไขคะแนน</a>
     <a href="exam-card.html" class="site-nav-link">รับบัตรเข้าห้องสอบ</a>
   </div>
 </div>
 <div class="tabs">
   <button class="tab-btn active" id="tabSearchBtn" onclick="switchTab('search')">ค้นหา</button>
+  <button class="tab-btn" id="tabGuideBtn" onclick="switchTab('guide')">คู่มือแก้ไขคะแนน</button>
   <button class="tab-btn hidden" id="tabImportBtn" onclick="switchTab('import')">นำเข้าคะแนนรายเดือน</button>
   <button class="tab-btn hidden" id="tabLogBtn" onclick="switchTab('log')">ประวัติการแก้ไข</button>
 </div>
@@ -356,6 +448,281 @@
         </tbody>
       </table>
     </div>
+  </div>
+
+  <div id="panelGuide" class="panel hidden">
+
+
+  <div class="hero">
+    <h2>สรุปแนวทางในการแก้ไขคะแนนความประพฤติและมาสาย</h2>
+    <p>สำหรับนักเรียน ประจำปีการศึกษา 2569 · กลุ่มงานบริหารทั่วไปและกิจการนักเรียน โรงเรียนโซ่พิสัยพิทยาคม</p>
+  </div>
+
+  <!-- 1 -->
+  <div class="section">
+    <div class="section-head"><div class="section-num">1</div><h2>การตรวจสอบคะแนนและเตรียมตัว</h2></div>
+
+    <div class="two-col">
+      <div class="card qr-card">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXIAAAFyAQAAAADAX2ykAAAC4klEQVR4nO2cS47bMAxAHysBWcrAHCBHUW7QIxU9Um8QH2UOMIC1HMAGu9DPKYp6BsgYdkEuEtt6CwIMKX7kiPIZGb99CgfjjTf+S/kkRW71CoD61K+uDqm/8Ru8U1VVLVcTQBIh6ozewwxRtS4cUX/jt/jinOFdAKeMV1VIl7o5JxG57aiP8c/i/fomvajE+4zEafEKMxKnffUx/rn8g33DuygsnuzE3yeU9DLvqY/xX8Gr6gzgVG7popA8wFKjclDV+476GP8s3gOLlJsHX5X4etG8MuYvt4M+xj+X9xBaiyMtwjg4lNRsDqxbIEfT3/gNUZ2cQpiBoFo+AGKN2aVSwqnej6a/8RuiOpX6t9e6xMnVDZdq/fzsaPobvyE9taqu64p9dYJq5Po7MPuej08e4rSI6quI3nOTA+SWQ3N17N30Mf6JfPbfvAkXr3Wan93DOlKb/56Wd8p4ndGfAzAOwCil71FcN6iKXOed9DH+eXzNnwEIM9qEPniIWhfMf0/G1/wqVKvGbO6SNZepURsimX1PxhcLRp3pZW7OpONU8+c4tUzraPob/2+p/as0oOPwBoQ3AfL8yAthQmARHcXNx9Pf+A3J8Tn2jwnWnY6H6tj892z8aj5YsqwwewEP4zCVlfjrBSV589/T8av+ZG9C54L3HlrXuS8cTX/jN6S0NtoJq9VZq55p9Z700fQ3fkN6hVs8NFdKpeBd9aSx+dEJ+VV/spdGpZfBOnBnw5t9z8enizIOID9y/rwI47AIhBm5JZFykjLZ+efz8auGZB4IlnG/1oKINik0/z0hXzuQ0Erfll+Fdn6jHwE4mv7Gb/P9/QVyfJZb0ByQS6XEYu+nnJNv8yO36lXVcXCnnNVH/wGffAnX47XN9+v5DTv/fEre/3EvgJRQnQaUNABh8Zq346Ppb/xH+DoELvOFvgnLDadWH52X/0v+3GJx62r0Fqbtvyfjayz+oNj/Mxhv/IH43yceXO4fvci1AAAAAElFTkSuQmCC" alt="QR Code ตรวจสอบคะแนน">
+        <p class="caption">สแกนเพื่อตรวจสอบคะแนน</p>
+        <div><a class="link-btn" href="score-check.html">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          ตรวจสอบคะแนนที่นี่
+        </a></div>
+      </div>
+
+      <div class="card card-row">
+        <svg class="badge-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="14" width="30" height="40" rx="3" fill="#F4E7C9" stroke="#C9972F" stroke-width="2"/>
+          <rect x="16" y="20" width="30" height="34" rx="3" fill="#FFFFFF" stroke="#C9972F" stroke-width="2"/>
+          <rect x="20" y="26" width="10" height="4" rx="1" fill="#C9972F"/>
+          <rect x="20" y="34" width="10" height="4" rx="1" fill="#E4E0D4"/>
+          <rect x="20" y="42" width="10" height="4" rx="1" fill="#E4E0D4"/>
+        </svg>
+        <div class="content">
+          <h3>รับแบบฟอร์ม</h3>
+          <p>"แบบบันทึกการแก้ไขคะแนนความประพฤติและสาย" ได้ที่ห้องกิจการนักเรียน อาคาร 1 (ตู้เอกสารสีเขียว ลิ้นชักล่างสุด)</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card photo-card">
+      <div class="cabinet-illustration"><svg viewBox="0 0 480 330" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="240" cy="316" rx="210" ry="10" fill="#000000" opacity="0.08"/>
+      <rect x="30" y="22" width="130" height="24" rx="4" fill="#B9A67E"/>
+      <rect x="30" y="40" width="130" height="260" fill="#D9CBB0"/>
+      <rect x="26" y="296" width="138" height="10" rx="2" fill="#B9A67E"/>
+      <rect x="33" y="41.5" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="48.81818181818182" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="33" y="65.13636363636364" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="72.45454545454545" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="128" y="70.45454545454545" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="33" y="88.77272727272728" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="96.0909090909091" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="33" y="112.4090909090909" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="119.72727272727272" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="33" y="136.04545454545456" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="143.36363636363637" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="128" y="141.36363636363637" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="33" y="159.6818181818182" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="167.0" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="33" y="183.3181818181818" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="190.63636363636363" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="33" y="206.95454545454547" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="214.27272727272728" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="128" y="212.27272727272728" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="33" y="230.5909090909091" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="237.9090909090909" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="33" y="254.22727272727272" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="261.54545454545456" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="33" y="277.8636363636364" width="124" height="20.636363636363637" fill="#CBBC9B" stroke="#00000014" stroke-width="1"/>
+      <rect x="44" y="285.1818181818182" width="30" height="6" rx="2" fill="#4A4136"/>
+      <rect x="128" y="283.1818181818182" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="175" y="22" width="130" height="24" rx="4" fill="#9AA0A8"/>
+      <rect x="175" y="40" width="130" height="260" fill="#C9CDD3"/>
+      <rect x="171" y="296" width="138" height="10" rx="2" fill="#9AA0A8"/>
+      <rect x="178" y="41.5" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="48.81818181818182" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="178" y="65.13636363636364" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="72.45454545454545" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="273" y="70.45454545454545" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="178" y="88.77272727272728" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="96.0909090909091" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="178" y="112.4090909090909" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="119.72727272727272" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="178" y="136.04545454545456" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="143.36363636363637" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="273" y="141.36363636363637" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="178" y="159.6818181818182" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="167.0" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="178" y="183.3181818181818" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="190.63636363636363" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="178" y="206.95454545454547" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="214.27272727272728" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="273" y="212.27272727272728" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="178" y="230.5909090909091" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="237.9090909090909" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="178" y="254.22727272727272" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="261.54545454545456" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="178" y="277.8636363636364" width="124" height="20.636363636363637" fill="#B7BBC2" stroke="#00000014" stroke-width="1"/>
+      <rect x="189" y="285.1818181818182" width="30" height="6" rx="2" fill="#3A3D42"/>
+      <rect x="273" y="283.1818181818182" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="320" y="22" width="130" height="24" rx="4" fill="#6E9A2A"/>
+      <rect x="320" y="40" width="130" height="260" fill="#93C93F"/>
+      <rect x="316" y="296" width="138" height="10" rx="2" fill="#6E9A2A"/>
+      <rect x="323" y="41.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="47.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="323" y="61.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="67.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="418" y="65.0" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="323" y="81.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="87.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="323" y="101.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="107.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="323" y="121.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="127.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="418" y="125.0" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="323" y="141.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="147.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="323" y="161.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="167.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="323" y="181.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="187.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="418" y="185.0" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="323" y="201.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="207.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="323" y="221.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="227.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="323" y="241.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="247.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="418" y="245.0" width="18" height="10" rx="1.5" fill="#FFFFFFcc"/>
+      <rect x="323" y="261.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="267.0" width="30" height="6" rx="2" fill="#274713"/>
+      <rect x="323" y="281.5" width="124" height="17.0" fill="#7FB431" stroke="#00000014" stroke-width="1"/>
+      <rect x="334" y="287.0" width="30" height="6" rx="2" fill="#274713"/>
+    </svg></div>
+      <p class="cap">
+        ตู้เอกสารจริงที่ห้องกิจการนักเรียน อาคาร 1<br>
+        <span class="cab-tag green">🟢 ตู้สีเขียว (ขวา)</span> — รับแบบฟอร์ม ลิ้นชักล่างสุด &nbsp;·&nbsp;
+        <span class="cab-tag grey">⬜ ตู้สีเทา (กลาง)</span> — ส่งแบบฟอร์มที่กรอกเสร็จแล้ว
+      </p>
+    </div>
+
+    <p class="contact-line">* สอบถามหรือแจ้งแก้ไขกรณีข้อมูลผิดพลาด ติดต่อ ครูศาสตราวุฒิ อาชนะชัย ห้องกิจการนักเรียน อาคาร 1 หรือโทร 080-3282823</p>
+  </div>
+
+  <!-- 2 -->
+  <div class="section">
+    <div class="section-head"><div class="section-num">2</div><h2>การแก้ไขคะแนนความประพฤติ</h2></div>
+    <div class="card">
+      <h3 style="margin:0 0 10px;font-size:14px;color:var(--navy);">2.1 ในวันทำการปกติ (วันที่มาเรียนตามปกติ)</h3>
+      <ul class="point-list">
+        <li class="point-item">
+          <div class="point-num">1</div>
+          <div class="txt">เข้าร่วมกิจกรรมหน้าเสาธง คุณครูที่ปรึกษาเช็คชื่อ <span class="score-badge">ลดวันละ 1 คะแนน</span></div>
+        </li>
+        <li class="point-item">
+          <div class="point-num">2</div>
+          <div class="txt">เข้าร่วมกิจกรรมลงเขตพื้นที่และเวรประจำวัน คุณครูที่ปรึกษาเช็คชื่อ <span class="score-badge">ลดวันละ 1 คะแนน</span></div>
+        </li>
+        <li class="point-item">
+          <div class="point-num">3</div>
+          <div class="txt">นักเรียนที่มีคะแนนความประพฤติ <b>ไม่เกิน 100 คะแนน</b> แก้ไขคะแนนกับคุณครูที่ปรึกษา โดยให้เป็นดุลยพินิจของคุณครูที่ปรึกษา</div>
+        </li>
+        <li class="point-item">
+          <div class="point-num">4</div>
+          <div class="txt">นักเรียนที่มีคะแนนความประพฤติ <b>ตั้งแต่ 101 คะแนนขึ้นไป</b> แก้ไข 100 คะแนนแรกกับคุณครูที่ปรึกษา ส่วนที่เหลือแก้ไขกับคุณครูกลุ่มงานกิจการนักเรียน (ตรวจสอบรายชื่อได้ที่หน้าห้องกิจการนักเรียน อาคาร 1) <span class="score-badge">ลดได้วันละไม่เกิน 50 คะแนน</span></div>
+        </li>
+        <li class="point-item">
+          <div class="point-num">5</div>
+          <div class="txt">นักเรียนที่เข้าร่วมกิจกรรมที่ทางโรงเรียนจัด หรือหน่วยงานภายใน สามารถนำ<b>เกียรติบัตร</b>มาลดคะแนนได้ โดยยื่นกับครูศาสตราวุฒิ อาชนะชัย ห้องกิจการนักเรียน อาคาร 1 เท่านั้น</div>
+        </li>
+      </ul>
+
+      <div class="compare-grid">
+        <div class="compare-box a">
+          <div class="tag">คะแนนไม่เกิน 100</div>
+          <div class="amount">ดุลยพินิจครูที่ปรึกษา</div>
+          <p>แก้ไขกับคุณครูที่ปรึกษาได้โดยตรง ไม่ต้องผ่านกลุ่มงานกิจการนักเรียน</p>
+        </div>
+        <div class="compare-box b">
+          <div class="tag">ตั้งแต่ 101 ขึ้นไป</div>
+          <div class="amount">100 แรก + ที่เหลือ</div>
+          <p>100 คะแนนแรกแก้กับครูที่ปรึกษา ส่วนที่เหลือแก้กับครูกลุ่มงานกิจการนักเรียน (ไม่เกิน 50/วัน)</p>
+        </div>
+      </div>
+
+      <div class="note-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <div><b>หมายเหตุ</b>การแก้ไขคะแนนความประพฤติต้องแก้ไขที่โรงเรียนโซ่พิสัยพิทยาคมเท่านั้น ส่วนการแก้ไขในช่วงวันหยุดหรือปิดภาคเรียน กลุ่มงานกิจการนักเรียนจะแจ้งให้ทราบในครั้งถัดไป</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="section">
+    <div class="section-head"><div class="section-num">3</div><h2>การแก้ไขการมาสาย (กิจกรรมหน้าเสาธง)</h2></div>
+
+    <div class="card">
+      <h3 style="margin:0 0 10px;font-size:14px;color:var(--navy);">3.1 ในวันทำการปกติ (มาเรียนก่อนเวลา 08.05 น.)</h3>
+      <div class="two-col">
+        <div class="card-row" style="margin-bottom:0;">
+          <svg class="badge-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="22" fill="#E4ECF3" stroke="#1E4F73" stroke-width="2"/>
+            <line x1="32" y1="32" x2="32" y2="19" stroke="#1E4F73" stroke-width="3" stroke-linecap="round"/>
+            <line x1="32" y1="32" x2="41" y2="36" stroke="#1E4F73" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="32" cy="32" r="2.5" fill="#1E4F73"/>
+          </svg>
+          <div class="content">
+            <h3>ร่วมหน้าเสาธงที่โรงเรียน</h3>
+            <p>นำแบบฟอร์มให้คุณครูกลุ่มงานกิจการนักเรียนลงลายมือชื่อ หากไม่พบครู ให้ถ่ายภาพ/วิดีโอเก็บไว้ในเครื่อง (ห้ามลง Line, Facebook, IG) หรือให้ครูที่ปรึกษาบันทึกภาพไว้แทน</p>
+          </div>
+        </div>
+        <div class="card-row" style="margin-bottom:0;">
+          <svg class="badge-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <rect x="12" y="18" width="40" height="30" rx="4" fill="#F4E7C9" stroke="#C9972F" stroke-width="2"/>
+            <circle cx="32" cy="33" r="9" fill="#FFFFFF" stroke="#C9972F" stroke-width="2"/>
+            <circle cx="32" cy="33" r="3.5" fill="#C9972F"/>
+            <rect x="24" y="12" width="16" height="8" rx="2" fill="#C9972F"/>
+          </svg>
+          <div class="content">
+            <h3>กรณีฝนตก / หน้าห้องเรียน</h3>
+            <p>ถ่ายภาพขณะร่วมกิจกรรมเก็บไว้ในเครื่อง หรือให้ครูที่ปรึกษาบันทึกภาพไว้ให้ เพื่อเป็นหลักฐานให้ครูกลุ่มงานกิจการนักเรียนเซ็นภายหลัง</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-row">
+      <svg class="badge-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <rect x="9" y="14" width="46" height="38" rx="4" fill="#FFFFFF" stroke="#16324F" stroke-width="2"/>
+        <rect x="9" y="14" width="46" height="10" rx="4" fill="#16324F"/>
+        <line x1="18" y1="10" x2="18" y2="18" stroke="#16324F" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="46" y1="10" x2="46" y2="18" stroke="#16324F" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="32" cy="38" r="7" fill="#C9972F"/>
+        <path d="M28 38l3 3 6-6" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="content">
+        <h3>3.2 วันหยุดเสาร์-อาทิตย์ / วันหยุดราชการ / ปิดภาคเรียน</h3>
+        <p>ร่วมกิจกรรมหน้าเสาธงที่โรงเรียนหรือสถานที่ราชการใกล้บ้าน ก่อนเวลา 08.05 น. <b>บันทึกวิดีโอ</b>เก็บไว้ในเครื่อง (ห้ามลง Line, Facebook, IG) หรือให้ครูที่ปรึกษาบันทึกไว้แทน — ต้องแต่งกายด้วยชุดนักเรียนเต็มยศ หรือชุดพลศึกษาโรงเรียน (รองเท้าผ้าใบ) เต็มชุดเท่านั้น</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="section">
+    <div class="section-head"><div class="section-num">4</div><h2>การส่ง "แบบบันทึกการแก้ไขคะแนนความประพฤติและมาสาย"</h2></div>
+    <div class="card card-row">
+      <svg class="badge-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <rect x="12" y="10" width="40" height="44" rx="3" fill="#E4ECF3" stroke="#1E4F73" stroke-width="2"/>
+        <line x1="18" y1="20" x2="46" y2="20" stroke="#1E4F73" stroke-width="2"/>
+        <line x1="18" y1="30" x2="46" y2="30" stroke="#1E4F73" stroke-width="2"/>
+        <line x1="18" y1="40" x2="38" y2="40" stroke="#1E4F73" stroke-width="2"/>
+        <circle cx="46" cy="46" r="11" fill="#1E4F73" stroke="#fff" stroke-width="2"/>
+        <path d="M41 46l3.5 3.5L51 42" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="content">
+        <h3>รวบรวมและส่งเอกสาร</h3>
+        <p>เมื่อแก้ไขคะแนนความประพฤติและมาสายเสร็จเรียบร้อยแล้ว ให้รวบรวมแบบบันทึก รูปภาพ และวิดีโอทั้งหมด นำมาส่งที่<b>ตู้เอกสารสีเทา</b> (ตู้กลางในภาพที่หัวข้อ 1 ด้านบน) หน้าห้องกิจการนักเรียน อาคาร 1 โรงเรียนโซ่พิสัยพิทยาคม เพื่อทำการลดคะแนนในระบบ — <b>ระบบจะปรับลดคะแนนให้ทุกวันศุกร์</b></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="warning-box">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#B24334" stroke-width="2" style="flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <div>
+      <h3>คำเตือนสำคัญ</h3>
+      <p>ห้ามปลอมแปลงลายเซ็นหรือเอกสาร หรือรับแก้ไขให้นักเรียนคนอื่น ๆ ที่ไม่ใช่ของตนเอง หากตรวจพบจะถูกเพิ่มคะแนนความประพฤติ และเอกสารฉบับนั้นจะถือเป็นโมฆะทั้งหมด</p>
+    </div>
+  </div>
+
+  <div class="footer-motto">
+    <p class="quote">นักเรียนโรงเรียนโซ่พิสัยพิทยาคม ต้องเป็น "คนดี มีปัญญา"</p>
+    <p class="credit">ด้วยความปรารถนาดีจากกลุ่มงานบริหารทั่วไปและกิจการนักเรียน โรงเรียนโซ่พิสัยพิทยาคม</p>
+  </div>
+
+
   </div>
 
   <div id="panelImport" class="panel hidden">
@@ -750,9 +1117,11 @@ function onGradeChange() {
 function switchTab(tab) {
   currentTab = tab;
   document.getElementById("tabSearchBtn").classList.toggle("active", tab === "search");
+  document.getElementById("tabGuideBtn").classList.toggle("active", tab === "guide");
   document.getElementById("tabImportBtn").classList.toggle("active", tab === "import");
   document.getElementById("tabLogBtn").classList.toggle("active", tab === "log");
   document.getElementById("panelSearch").classList.toggle("hidden", tab !== "search");
+  document.getElementById("panelGuide").classList.toggle("hidden", tab !== "guide");
   document.getElementById("panelImport").classList.toggle("hidden", tab !== "import");
   document.getElementById("panelLog").classList.toggle("hidden", tab !== "log");
   if (tab === "log") {
