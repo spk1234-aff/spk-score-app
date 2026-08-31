@@ -120,6 +120,11 @@
 
   .empty-state{text-align:center;padding:50px 20px;color:var(--ink-faint);}
   .empty-state i{font-size:30px;display:block;margin-bottom:10px;}
+  .inline-login{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+  .inline-login input[type="password"]{
+    height:42px;border-radius:8px;border:1px solid var(--line);padding:0 12px;
+    font-size:14px;font-family:'Sarabun',sans-serif;min-width:220px;
+  }
 
   .admin-panel{margin-top:26px;}
   .field{margin-bottom:14px;}
@@ -247,6 +252,12 @@
         ปิดช่วงรับบัตรของ "ช่วงที่กำลังเปิดอยู่ตอนนี้" เท่านั้น (ข้อมูลกลางภาค/ปลายภาคแยกกันเก็บอยู่แล้ว ไม่ปนกัน) — นักเรียนที่ยังไม่มารับบัตร จะถูกเพิ่มคะแนนความประพฤติ 50 คะแนนทันที (ทำครั้งเดียว ย้อนกลับไม่ได้)
       </p>
       <button class="btn btn-danger" onclick="confirmFinalizeExam()">ปิดช่วงรับบัตร (ช่วงที่เปิดอยู่ตอนนี้)</button>
+      <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
+      <div class="field">
+        <label>ตั้ง/เปลี่ยนรหัสผ่านสำหรับครูบันทึกรับบัตร</label>
+        <input type="password" id="teacherPasscodeInput" placeholder="รหัสผ่านใหม่สำหรับครู">
+      </div>
+      <button class="btn btn-primary" onclick="saveTeacherPasscodeValue()">บันทึกรหัสผ่านครู</button>
     </div>
   </div>
 
@@ -300,6 +311,8 @@ let examConfig = { activeTerm: "midterm", startDate: "", endDate: "" };
 const TERM_LABELS = { midterm: "กลางภาค", final: "ปลายภาค" };
 let isAdmin = false;
 let adminPasscodeEntered = null;
+let isTeacherLoggedIn = false;
+let teacherPasscodeEntered = null;
 let currentView = "record"; // "record" | "status"
 let currentGender = "male"; // "male" | "female"
 let selectedIds = {};       // id -> true, for the record view's batch selection
@@ -494,14 +507,53 @@ function uniformBadgeHtml(s) {
   return badge + hairBadge + penaltyBadge + midtermBadge;
 }
 
+function canRecord() {
+  return isAdmin || isTeacherLoggedIn;
+}
+function currentWritePasscode() {
+  return isAdmin ? adminPasscodeEntered : teacherPasscodeEntered;
+}
+
+async function submitTeacherLogin() {
+  const val = document.getElementById("teacherLoginPass").value;
+  const errEl = document.getElementById("teacherLoginErr");
+  const btn = document.getElementById("teacherLoginBtn");
+  errEl.classList.add("hidden");
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "กำลังตรวจสอบ...";
+  const res = await apiPost({ action: "checkTeacherPasscode", scope: "examcard", passcode: val });
+  btn.disabled = false;
+  btn.textContent = originalText;
+  if (res && res.ok) {
+    isTeacherLoggedIn = true;
+    teacherPasscodeEntered = val;
+    toast("เข้าสู่ระบบแล้ว");
+    renderRecordList();
+  } else {
+    errEl.textContent = "รหัสผ่านไม่ถูกต้อง";
+    errEl.classList.remove("hidden");
+  }
+}
+
 function renderRecordList() {
   const grade = document.getElementById("gradeSelect").value;
   const room = document.getElementById("roomSelect").value;
   const wrap = document.getElementById("recordListWrap");
   selectedIds = {};
 
-  if (!isAdmin) {
-    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-lock"></i><p>กรุณาเข้าสู่ระบบก่อนบันทึก — กดปุ่ม "โหมดผู้ดูแล" มุมขวาบน แล้วกรอกรหัสผ่าน</p></div>`;
+  if (!canRecord()) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <i class="ti ti-lock"></i>
+        <p>กรุณาเข้าสู่ระบบก่อนบันทึก</p>
+        <div class="inline-login">
+          <input type="password" id="teacherLoginPass" placeholder="รหัสผ่านสำหรับครูบันทึกรับบัตร" onkeydown="if(event.key==='Enter')submitTeacherLogin()">
+          <button class="btn btn-primary" id="teacherLoginBtn" onclick="submitTeacherLogin()">เข้าสู่ระบบ</button>
+        </div>
+        <p class="modal-err hidden" id="teacherLoginErr" style="margin-top:8px;"></p>
+      </div>
+    `;
     return;
   }
 
@@ -545,7 +597,7 @@ function renderRecordList() {
 }
 
 function toggleSelect(id, checked) {
-  if (!isAdmin) {
+  if (!canRecord()) {
     toast("กรุณาเข้าสู่ระบบก่อนบันทึก");
     return;
   }
@@ -559,7 +611,7 @@ function toggleSelect(id, checked) {
 }
 
 async function saveSelectedExamCards() {
-  if (!isAdmin) {
+  if (!canRecord()) {
     toast("กรุณาเข้าสู่ระบบก่อนบันทึก");
     return;
   }
@@ -571,7 +623,7 @@ async function saveSelectedExamCards() {
   btn.disabled = true;
   btn.textContent = "กำลังบันทึก...";
 
-  const res = await apiPost({ action: "saveExamCard", passcode: adminPasscodeEntered, ids });
+  const res = await apiPost({ action: "saveExamCard", passcode: currentWritePasscode(), ids });
 
   if (res && res.ok) {
     ids.forEach(id => { examRows[id] = { received: "yes", updatedAt: new Date().toISOString() }; });
@@ -724,6 +776,21 @@ async function saveExamConfigDates() {
     renderRoundBanner();
     // switching term means the "current" dataset changed — reload everything fresh
     await loadAll();
+  } else {
+    toast("บันทึกไม่สำเร็จ");
+  }
+}
+
+async function saveTeacherPasscodeValue() {
+  const val = document.getElementById("teacherPasscodeInput").value;
+  if (!val) {
+    toast("กรุณากรอกรหัสผ่านใหม่");
+    return;
+  }
+  const res = await apiPost({ action: "saveTeacherPasscode", passcode: adminPasscodeEntered, scope: "examcard", newPasscode: val });
+  if (res && res.ok) {
+    toast("บันทึกรหัสผ่านครูแล้ว");
+    document.getElementById("teacherPasscodeInput").value = "";
   } else {
     toast("บันทึกไม่สำเร็จ");
   }
