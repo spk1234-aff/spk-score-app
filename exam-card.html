@@ -199,7 +199,7 @@
     <div id="viewRecord" style="margin-top:20px;">
       <div class="teacher-notice">
         <i class="ti ti-info-circle"></i>
-        หน้านี้สำหรับ<b>คุณครูกลุ่มงานกิจการนักเรียน</b>ใช้บันทึกข้อมูลการรับบัตรเข้าห้องสอบเท่านั้น หากท่านไม่ได้อยู่ในกลุ่มงานนี้ กรุณาอย่าบันทึกข้อมูลในหน้านี้
+        หน้านี้สำหรับ<b>คุณครูกลุ่มงานกิจการนักเรียน</b>ใช้บันทึกข้อมูลการรับบัตรเข้าห้องสอบเท่านั้น ต้องเข้าสู่ระบบด้วยรหัสผ่านก่อนจึงจะบันทึกได้
       </div>
       <div id="roundBanner" class="round-banner">กำลังโหลดข้อมูลช่วงเวลา...</div>
 
@@ -500,6 +500,11 @@ function renderRecordList() {
   const wrap = document.getElementById("recordListWrap");
   selectedIds = {};
 
+  if (!isAdmin) {
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-lock"></i><p>กรุณาเข้าสู่ระบบก่อนบันทึก — กดปุ่ม "โหมดผู้ดูแล" มุมขวาบน แล้วกรอกรหัสผ่าน</p></div>`;
+    return;
+  }
+
   if (!isPickupAllowed()) {
     wrap.innerHTML = `<div class="empty-state"><i class="ti ti-lock"></i><p>ยังบันทึกไม่ได้ เนื่องจากอยู่นอกช่วงเวลาที่ผู้ดูแลกำหนดไว้ (หรือยังไม่ได้ตั้งค่า)</p></div>`;
     return;
@@ -540,6 +545,10 @@ function renderRecordList() {
 }
 
 function toggleSelect(id, checked) {
+  if (!isAdmin) {
+    toast("กรุณาเข้าสู่ระบบก่อนบันทึก");
+    return;
+  }
   if (checked) selectedIds[id] = true; else delete selectedIds[id];
   const count = Object.keys(selectedIds).length;
   const btn = document.getElementById("saveExamBtn");
@@ -550,6 +559,10 @@ function toggleSelect(id, checked) {
 }
 
 async function saveSelectedExamCards() {
+  if (!isAdmin) {
+    toast("กรุณาเข้าสู่ระบบก่อนบันทึก");
+    return;
+  }
   const ids = Object.keys(selectedIds);
   if (ids.length === 0) return;
 
@@ -558,7 +571,7 @@ async function saveSelectedExamCards() {
   btn.disabled = true;
   btn.textContent = "กำลังบันทึก...";
 
-  const res = await apiPost({ action: "saveExamCard", ids });
+  const res = await apiPost({ action: "saveExamCard", passcode: adminPasscodeEntered, ids });
 
   if (res && res.ok) {
     ids.forEach(id => { examRows[id] = { received: "yes", updatedAt: new Date().toISOString() }; });
@@ -691,6 +704,7 @@ function updateAdminUI() {
   pill.classList.toggle("on", isAdmin);
   pillText.textContent = isAdmin ? "โหมดผู้ดูแล (เปิดอยู่)" : "โหมดผู้ดูแล";
   document.getElementById("adminPanel").classList.toggle("hidden", !isAdmin);
+  renderRecordList(); // login/logout changes whether the pickup list can be shown at all
 }
 
 function fillConfigInputs() {
