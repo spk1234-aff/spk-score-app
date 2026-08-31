@@ -418,6 +418,11 @@ function renderStudentList() {
   const room = document.getElementById("roomSelect").value;
   const wrap = document.getElementById("studentListWrap");
 
+  if (!isAdmin) {
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-lock"></i><p>กรุณาเข้าสู่ระบบก่อนบันทึกผลตรวจ — กดปุ่ม "โหมดผู้ดูแล" มุมขวาบน แล้วกรอกรหัสผ่าน</p></div>`;
+    return;
+  }
+
   if (!isCheckingAllowed()) {
     wrap.innerHTML = `<div class="empty-state"><i class="ti ti-lock"></i><p>ยังบันทึกไม่ได้ เนื่องจากผู้ดูแลยังไม่กำหนดวันตรวจ — รอผู้ดูแลตั้งค่าก่อน</p></div>`;
     return;
@@ -487,6 +492,10 @@ function renderStudentCard(s) {
 }
 
 function selectItem(id, item, status) {
+  if (!isAdmin) {
+    toast("กรุณาเข้าสู่ระบบก่อนบันทึก");
+    return;
+  }
   if (!isCheckingAllowed()) {
     toast("ยังบันทึกไม่ได้ เนื่องจากผู้ดูแลยังไม่กำหนดวันตรวจ");
     return;
@@ -501,6 +510,10 @@ function selectItem(id, item, status) {
 }
 
 async function saveStudent(id) {
+  if (!isAdmin) {
+    toast("กรุณาเข้าสู่ระบบก่อนบันทึก");
+    return;
+  }
   const sel = selections[id];
   if (!sel || Object.keys(sel).length === 0) return;
 
@@ -514,7 +527,7 @@ async function saveStudent(id) {
 
   const items = Object.keys(sel);
   const results = await Promise.all(items.map(item =>
-    apiPost({ action: saveItemActionName(), id, item, status: sel[item], hairNote: item === "hair" ? hairNote : "" })
+    apiPost({ action: saveItemActionName(), passcode: adminPasscodeEntered, id, item, status: sel[item], hairNote: item === "hair" ? hairNote : "" })
   ));
 
   if (!uniformRows[id]) uniformRows[id] = { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
@@ -591,6 +604,7 @@ function updateAdminUI() {
   pill.classList.toggle("on", isAdmin);
   pillText.textContent = isAdmin ? "โหมดผู้ดูแล (เปิดอยู่)" : "โหมดผู้ดูแล";
   document.getElementById("adminPanel").classList.toggle("hidden", !isAdmin);
+  renderStudentList(); // login/logout changes whether the checklist can be shown at all
 }
 
 function fillConfigInputs() {
