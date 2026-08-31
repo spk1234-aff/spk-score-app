@@ -105,6 +105,11 @@
 
   .empty-state{text-align:center;padding:50px 20px;color:var(--ink-faint);}
   .empty-state i{font-size:30px;display:block;margin-bottom:10px;}
+  .inline-login{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+  .inline-login input[type="password"]{
+    height:42px;border-radius:8px;border:1px solid var(--line);padding:0 12px;
+    font-size:14px;font-family:'Sarabun',sans-serif;min-width:220px;
+  }
 
   .admin-panel{margin-top:26px;}
   .field{margin-bottom:14px;}
@@ -208,6 +213,12 @@
       </p>
       <button class="btn btn-danger" onclick="confirmFinalize()">ปิดรอบตรวจ</button>
       <span id="roundClosedTag" class="hint" style="margin-left:10px;"></span>
+      <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
+      <div class="field">
+        <label>ตั้ง/เปลี่ยนรหัสผ่านสำหรับครูตรวจเครื่องแต่งกาย</label>
+        <input type="password" id="teacherPasscodeInput" placeholder="รหัสผ่านใหม่สำหรับครู">
+      </div>
+      <button class="btn btn-primary" onclick="saveTeacherPasscodeValue()">บันทึกรหัสผ่านครู</button>
     </div>
   </div>
 
@@ -259,6 +270,8 @@ let uniformRows = {}; // id -> {hair,hairNote,nail,sock,bow}
 let uniformConfig = { dates: ["","","","",""], closed: false };
 let isAdmin = false;
 let adminPasscodeEntered = null;
+let isTeacherLoggedIn = false;
+let teacherPasscodeEntered = null;
 let testMode = false;
 let selections = {}; // studentId -> { item: "pass"|"fail", ... } — chosen but not yet saved
 
@@ -413,13 +426,52 @@ function isCheckingAllowed() {
   return uniformConfig.dates.some(d => d); // real mode needs at least one date configured by admin
 }
 
+function canRecord() {
+  return isAdmin || isTeacherLoggedIn;
+}
+function currentWritePasscode() {
+  return isAdmin ? adminPasscodeEntered : teacherPasscodeEntered;
+}
+
+async function submitTeacherLogin() {
+  const val = document.getElementById("teacherLoginPass").value;
+  const errEl = document.getElementById("teacherLoginErr");
+  const btn = document.getElementById("teacherLoginBtn");
+  errEl.classList.add("hidden");
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "กำลังตรวจสอบ...";
+  const res = await apiPost({ action: "checkTeacherPasscode", scope: "uniform", passcode: val });
+  btn.disabled = false;
+  btn.textContent = originalText;
+  if (res && res.ok) {
+    isTeacherLoggedIn = true;
+    teacherPasscodeEntered = val;
+    toast("เข้าสู่ระบบแล้ว");
+    renderStudentList();
+  } else {
+    errEl.textContent = "รหัสผ่านไม่ถูกต้อง";
+    errEl.classList.remove("hidden");
+  }
+}
+
 function renderStudentList() {
   const grade = document.getElementById("gradeSelect").value;
   const room = document.getElementById("roomSelect").value;
   const wrap = document.getElementById("studentListWrap");
 
-  if (!isAdmin) {
-    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-lock"></i><p>กรุณาเข้าสู่ระบบก่อนบันทึกผลตรวจ — กดปุ่ม "โหมดผู้ดูแล" มุมขวาบน แล้วกรอกรหัสผ่าน</p></div>`;
+  if (!canRecord()) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <i class="ti ti-lock"></i>
+        <p>กรุณาเข้าสู่ระบบก่อนบันทึกผลตรวจ</p>
+        <div class="inline-login">
+          <input type="password" id="teacherLoginPass" placeholder="รหัสผ่านสำหรับครูตรวจเครื่องแต่งกาย" onkeydown="if(event.key==='Enter')submitTeacherLogin()">
+          <button class="btn btn-primary" id="teacherLoginBtn" onclick="submitTeacherLogin()">เข้าสู่ระบบ</button>
+        </div>
+        <p class="modal-err hidden" id="teacherLoginErr" style="margin-top:8px;"></p>
+      </div>
+    `;
     return;
   }
 
@@ -492,7 +544,7 @@ function renderStudentCard(s) {
 }
 
 function selectItem(id, item, status) {
-  if (!isAdmin) {
+  if (!canRecord()) {
     toast("กรุณาเข้าสู่ระบบก่อนบันทึก");
     return;
   }
@@ -510,7 +562,7 @@ function selectItem(id, item, status) {
 }
 
 async function saveStudent(id) {
-  if (!isAdmin) {
+  if (!canRecord()) {
     toast("กรุณาเข้าสู่ระบบก่อนบันทึก");
     return;
   }
@@ -527,7 +579,7 @@ async function saveStudent(id) {
 
   const items = Object.keys(sel);
   const results = await Promise.all(items.map(item =>
-    apiPost({ action: saveItemActionName(), passcode: adminPasscodeEntered, id, item, status: sel[item], hairNote: item === "hair" ? hairNote : "" })
+    apiPost({ action: saveItemActionName(), passcode: currentWritePasscode(), id, item, status: sel[item], hairNote: item === "hair" ? hairNote : "" })
   ));
 
   if (!uniformRows[id]) uniformRows[id] = { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
@@ -624,6 +676,21 @@ async function saveUniformConfigDates() {
     renderRoundBanner();
     fillConfigInputs();
     renderStudentList();
+  } else {
+    toast("บันทึกไม่สำเร็จ");
+  }
+}
+
+async function saveTeacherPasscodeValue() {
+  const val = document.getElementById("teacherPasscodeInput").value;
+  if (!val) {
+    toast("กรุณากรอกรหัสผ่านใหม่");
+    return;
+  }
+  const res = await apiPost({ action: "saveTeacherPasscode", passcode: adminPasscodeEntered, scope: "uniform", newPasscode: val });
+  if (res && res.ok) {
+    toast("บันทึกรหัสผ่านครูแล้ว");
+    document.getElementById("teacherPasscodeInput").value = "";
   } else {
     toast("บันทึกไม่สำเร็จ");
   }
