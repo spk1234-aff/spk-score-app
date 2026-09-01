@@ -873,7 +873,7 @@ function detectStorageMode() {
 
 async function cloudGetStudents() {
   try {
-    const res = await fetch(API_URL + "?action=students");
+    const res = await fetch(API_URL + "?action=students&_=" + Date.now(), { cache: "no-store" });
     const data = await res.json();
     return (data && data.ok) ? data.students : null;
   } catch (e) {
@@ -884,7 +884,7 @@ async function cloudGetStudents() {
 async function cloudGetLog() {
   try {
     const pc = encodeURIComponent(adminPasscodeEntered || "");
-    const res = await fetch(API_URL + "?action=log&passcode=" + pc);
+    const res = await fetch(API_URL + "?action=log&passcode=" + pc + "&_=" + Date.now(), { cache: "no-store" });
     const data = await res.json();
     return (data && data.ok) ? data.log : [];
   } catch (e) {
