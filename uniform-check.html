@@ -387,7 +387,7 @@ function renderRoundBanner() {
     el.textContent = `วันนี้เป็นรอบตรวจครั้งที่ ${match.round} จาก 5 ครั้ง`;
   } else {
     el.className = "round-banner inactive";
-    el.textContent = "วันนี้ไม่ตรงกับวันตรวจที่กำหนดไว้ (ยังบันทึกผลได้ตามปกติ)";
+    el.textContent = "วันนี้ไม่ตรงกับวันตรวจที่กำหนดไว้ — บันทึกผลไม่ได้ในวันนี้";
   }
 }
 
@@ -423,7 +423,8 @@ function isFullyPassed(s) {
 
 function isCheckingAllowed() {
   if (testMode) return true; // sandbox — always open for free experimentation
-  return uniformConfig.dates.some(d => d); // real mode needs at least one date configured by admin
+  const today = todayISO();
+  return uniformConfig.dates.some(d => d === today); // real mode: today must exactly match one of the 5 scheduled dates
 }
 
 function canRecord() {
@@ -476,7 +477,7 @@ function renderStudentList() {
   }
 
   if (!isCheckingAllowed()) {
-    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-lock"></i><p>ยังบันทึกไม่ได้ เนื่องจากผู้ดูแลยังไม่กำหนดวันตรวจ — รอผู้ดูแลตั้งค่าก่อน</p></div>`;
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-lock"></i><p>ยังบันทึกไม่ได้ เนื่องจากวันนี้ไม่ตรงกับวันตรวจที่ผู้ดูแลกำหนดไว้ (หรือยังไม่ได้ตั้งค่า)</p></div>`;
     return;
   }
 
@@ -549,7 +550,7 @@ function selectItem(id, item, status) {
     return;
   }
   if (!isCheckingAllowed()) {
-    toast("ยังบันทึกไม่ได้ เนื่องจากผู้ดูแลยังไม่กำหนดวันตรวจ");
+    toast("ยังบันทึกไม่ได้ เนื่องจากวันนี้ไม่ตรงกับวันตรวจที่กำหนดไว้");
     return;
   }
   if (!selections[id]) selections[id] = {};
