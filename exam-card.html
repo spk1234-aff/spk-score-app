@@ -343,7 +343,7 @@ function applicableUniformItems(name) {
 
 async function apiGet(action) {
   try {
-    const res = await fetch(API_URL + "?action=" + action);
+    const res = await fetch(API_URL + "?action=" + action + "&_=" + Date.now(), { cache: "no-store" });
     return await res.json();
   } catch (e) {
     return null;
