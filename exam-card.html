@@ -158,6 +158,27 @@
   .footer-motto .quote{font-family:'Kanit',sans-serif;font-size:17px;font-weight:600;margin:0 0 6px;color:var(--gold-light);}
   .footer-motto .credit{font-size:12px;color:#B9C6D4;margin:0;}
 
+  .dev-credit{
+    margin-top:20px;background:var(--card);border:1.5px solid var(--gold);border-radius:16px;
+    padding:22px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    box-shadow:0 4px 16px rgba(201,151,47,0.14);
+  }
+  .dev-credit .dev-avatar{
+    width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg, var(--gold) 0%, #A9791F 100%);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;flex-shrink:0;
+  }
+  .dev-credit .dev-info{flex:1;min-width:220px;}
+  .dev-credit .dev-label{font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin:0 0 3px;}
+  .dev-credit .dev-name{font-family:'Kanit',sans-serif;font-size:16.5px;font-weight:600;color:var(--navy);margin:0 0 2px;}
+  .dev-credit .dev-role{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;line-height:1.5;}
+  .dev-credit .dev-contact{display:flex;gap:10px;flex-wrap:wrap;}
+  .dev-credit .dev-contact a{
+    display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--navy);
+    text-decoration:none;background:var(--gold-light);padding:6px 13px;border-radius:999px;font-weight:500;
+    transition:background .15s, color .15s;
+  }
+  .dev-credit .dev-contact a:hover{background:var(--gold);color:#fff;}
+
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy-deep);color:#fff;padding:11px 20px;border-radius:999px;font-size:13.5px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s;}
   .toast.show{opacity:1;}
 </style>
@@ -264,6 +285,19 @@
   <div class="footer-motto">
     <p class="quote">"คนดี มีปัญญา"</p>
     <p class="credit">ด้วยความปรารถนาดีจากกลุ่มงานบริหารทั่วไปและกิจการนักเรียน โรงเรียนโซ่พิสัยพิทยาคม</p>
+  </div>
+
+  <div class="dev-credit">
+    <div class="dev-avatar"><i class="ti ti-code"></i></div>
+    <div class="dev-info">
+      <p class="dev-label">พัฒนาโดย</p>
+      <p class="dev-name">นายศาสตราวุฒิ อาชนะชัย</p>
+      <p class="dev-role">กลุ่มสาระการเรียนรู้คณิตศาสตร์ · กลุ่มงานกิจการนักเรียน โรงเรียนโซ่พิสัยพิทยาคม</p>
+      <div class="dev-contact">
+        <a href="tel:0803282823"><i class="ti ti-phone"></i> 080-328-2823</a>
+        <a href="mailto:sattrawood@sopit.ac.th"><i class="ti ti-mail"></i> sattrawood@sopit.ac.th</a>
+      </div>
+    </div>
   </div>
 
 </div>
