@@ -184,6 +184,17 @@
   }
   .score-edit-row{display:flex;gap:12px;}
   .score-edit-row .field{flex:1;}
+  .current-val-line{font-size:13px;color:var(--ink-soft);margin-bottom:8px;}
+  .current-val-line b{color:var(--ink);}
+  .adjust-row{display:flex;gap:8px;}
+  .adjust-col{flex:1;}
+  .adjust-label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
+  .adjust-col input{
+    width:100%;height:38px;border-radius:8px;border:1px solid var(--line);padding:0 10px;
+    font-size:14px;font-family:'Sarabun',sans-serif;
+  }
+  .preview-line{font-size:13px;color:var(--ink-soft);margin-top:8px;}
+  .preview-line b{color:var(--navy);font-size:15px;}
   .modal-actions{display:flex;gap:10px;margin-top:18px;}
   .btn{
     flex:1;height:42px;border-radius:8px;border:1px solid var(--line);
@@ -1339,14 +1350,36 @@ function openDetail(key) {
       <p class="sub">รหัสประจำตัว ${s.id} · ม.${s.grade}/${s.room} · เลขที่ ${s.no}</p>
       <div class="score-edit-row">
         <div class="field">
-          <label>สาย (ค่าจริงในระบบ — ค่าติดลบคือหนี้สะสม)</label>
-          <input type="number" id="editSay" value="${s.say}">
+          <label>สาย</label>
+          <div class="current-val-line">ค่าปัจจุบันในระบบ: <b id="curSayDisplay">${s.say}</b></div>
           ${sayDebtNote}
+          <div class="adjust-row">
+            <div class="adjust-col">
+              <label class="adjust-label">เพิ่ม</label>
+              <input type="number" min="0" id="addSay" value="0" oninput="updateEditPreview()">
+            </div>
+            <div class="adjust-col">
+              <label class="adjust-label">ลด</label>
+              <input type="number" min="0" id="subSay" value="0" oninput="updateEditPreview()">
+            </div>
+          </div>
+          <div class="preview-line">ผลลัพธ์ใหม่: <b id="previewSay">${s.say}</b></div>
         </div>
         <div class="field">
-          <label>ความประพฤติ (ค่าจริงในระบบ — ค่าติดลบคือหนี้สะสม)</label>
-          <input type="number" id="editKhun" value="${s.khun}">
+          <label>ความประพฤติ</label>
+          <div class="current-val-line">ค่าปัจจุบันในระบบ: <b id="curKhunDisplay">${s.khun}</b></div>
           ${khunDebtNote}
+          <div class="adjust-row">
+            <div class="adjust-col">
+              <label class="adjust-label">เพิ่ม</label>
+              <input type="number" min="0" id="addKhun" value="0" oninput="updateEditPreview()">
+            </div>
+            <div class="adjust-col">
+              <label class="adjust-label">ลด</label>
+              <input type="number" min="0" id="subKhun" value="0" oninput="updateEditPreview()">
+            </div>
+          </div>
+          <div class="preview-line">ผลลัพธ์ใหม่: <b id="previewKhun">${s.khun}</b></div>
         </div>
       </div>
       <div class="field">
@@ -1362,6 +1395,21 @@ function openDetail(key) {
   document.getElementById("detailOverlay").classList.remove("hidden");
 }
 
+function updateEditPreview() {
+  const s = findStudent(activeStudentId);
+  if (!s) return;
+  const addSay = normNo(document.getElementById("addSay").value);
+  const subSay = normNo(document.getElementById("subSay").value);
+  const addKhun = normNo(document.getElementById("addKhun").value);
+  const subKhun = normNo(document.getElementById("subKhun").value);
+  const newSay = s.say + addSay - subSay;
+  const newKhun = s.khun + addKhun - subKhun;
+  document.getElementById("previewSay").textContent = newSay;
+  document.getElementById("previewKhun").textContent = newKhun;
+  document.getElementById("previewSay").style.color = newSay < 0 ? "var(--bad)" : "";
+  document.getElementById("previewKhun").style.color = newKhun < 0 ? "var(--bad)" : "";
+}
+
 function closeDetail() {
   document.getElementById("detailOverlay").classList.add("hidden");
   activeStudentId = null;
@@ -1370,8 +1418,12 @@ function closeDetail() {
 async function saveEdit() {
   const s = findStudent(activeStudentId);
   if (!s) return;
-  const newSay = normNo(document.getElementById("editSay").value);
-  const newKhun = normNo(document.getElementById("editKhun").value);
+  const addSay = normNo(document.getElementById("addSay").value);
+  const subSay = normNo(document.getElementById("subSay").value);
+  const addKhun = normNo(document.getElementById("addKhun").value);
+  const subKhun = normNo(document.getElementById("subKhun").value);
+  const newSay = s.say + addSay - subSay;
+  const newKhun = s.khun + addKhun - subKhun;
   const note = document.getElementById("editNote").value.trim();
 
   const oldSay = s.say;
