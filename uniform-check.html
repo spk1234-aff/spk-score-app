@@ -543,7 +543,7 @@ function renderStudentCard(s) {
 
   const rows = pendingItems.map(item => {
     const failTag = st[item] === "fail" ? '<span class="status-tag fail">ไม่ผ่านล่าสุด</span>' : "";
-    const hairNoteControl = item === "hair" ? `
+    const hairNoteControl = (item === "hair" && isFemale(s.name)) ? `
       <select class="hair-note-select" id="hairNote-${s.id}">
         <option value="">หมายเหตุทรงผม</option>
         <option value="short" ${st.hairNote === "short" ? "selected" : ""}>ผมสั้น</option>
