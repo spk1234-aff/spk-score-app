@@ -408,6 +408,7 @@ async function apiPost(payload) {
 function configActionName() { return testMode ? "uniformConfigTest" : "uniformConfig"; }
 function statusActionName() { return testMode ? "uniformStatusTest" : "uniformStatus"; }
 function saveItemActionName() { return testMode ? "saveUniformItemTest" : "saveUniformItem"; }
+function saveItemsBatchActionName() { return testMode ? "saveUniformItemsBatchTest" : "saveUniformItemsBatch"; }
 function saveConfigActionName() { return testMode ? "saveUniformConfigTest" : "saveUniformConfig"; }
 function finalizeActionName() { return testMode ? "finalizeUniformRoundTest" : "finalizeUniformRound"; }
 
@@ -798,24 +799,29 @@ async function saveStudent(id) {
   const hairNote = hairNoteEl ? hairNoteEl.value : "";
 
   const items = Object.keys(sel);
-  const results = await Promise.all(items.map(item =>
-    apiPost({ action: saveItemActionName(), passcode: currentWritePasscode(), id, item, status: sel[item], hairNote: item === "hair" ? hairNote : "" })
-  ));
+  // One request for the whole student, not one per item — much faster on the server
+  // (single lock + single row lookup + single flush instead of one of each per item).
+  const res = await apiPost({
+    action: saveItemsBatchActionName(),
+    passcode: currentWritePasscode(),
+    id,
+    items: sel,
+    hairNote: items.includes("hair") ? hairNote : ""
+  });
 
   if (!uniformRows[id]) uniformRows[id] = { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
-  let allOk = true;
-  items.forEach((item, i) => {
-    if (results[i] && results[i].ok) {
+  let allOk = false;
+  if (res && res.ok) {
+    allOk = true;
+    items.forEach(item => {
       uniformRows[id][item] = sel[item];
       if (item === "hair" && hairNote) uniformRows[id].hairNote = hairNote;
       delete selections[id][item];
-    } else {
-      allOk = false;
-    }
-  });
+    });
+  }
   if (selections[id] && Object.keys(selections[id]).length === 0) delete selections[id];
 
-  toast(allOk ? "บันทึกแล้ว" : "บันทึกไม่สำเร็จบางรายการ ลองใหม่อีกครั้ง");
+  toast(allOk ? "บันทึกแล้ว" : "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
 
   if (!allOk && btn) {
     btn.disabled = false;
