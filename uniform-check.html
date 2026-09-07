@@ -52,6 +52,14 @@
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;}
 
+  .tabs{display:flex;gap:4px;margin-top:16px;border-bottom:1px solid var(--line);}
+  .tab-btn{
+    font-family:'Sarabun',sans-serif;font-size:14px;font-weight:500;background:transparent;border:none;
+    color:var(--ink-soft);padding:10px 16px;cursor:pointer;border-bottom:3px solid transparent;
+  }
+  .tab-btn.active{color:var(--navy);border-bottom-color:var(--gold);font-weight:600;}
+  .tab-btn:hover:not(.active){color:var(--ink);}
+
   .round-banner{
     display:flex;align-items:center;gap:10px;background:var(--gold-light);color:#7A5A0E;
     border-radius:10px;padding:12px 16px;font-size:13.5px;margin-bottom:16px;
@@ -109,6 +117,28 @@
   .inline-login input[type="password"]{
     height:42px;border-radius:8px;border:1px solid var(--line);padding:0 12px;
     font-size:14px;font-family:'Sarabun',sans-serif;min-width:220px;
+  }
+
+  .status-row{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;margin-bottom:10px;
+  }
+  .status-row .name{font-weight:600;font-size:14.5px;margin-bottom:2px;}
+  .status-row .meta{font-size:12px;color:var(--ink-soft);margin-bottom:10px;}
+  .status-row.fully-passed{background:var(--good-bg);border-color:#B8DCC8;}
+  .status-item-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;flex-wrap:wrap;}
+  .status-item-label{font-size:13.5px;font-weight:500;min-width:70px;}
+  .status-btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .status-btn{
+    height:30px;padding:0 11px;border-radius:7px;border:1px solid var(--line);
+    background:var(--card);font-size:12px;font-family:'Sarabun',sans-serif;cursor:pointer;font-weight:500;
+  }
+  .status-btn.pass.active{background:var(--good);border-color:var(--good);color:#fff;}
+  .status-btn.fail.active{background:var(--bad);border-color:var(--bad);color:#fff;}
+  .status-btn.clear.active{background:var(--ink-faint);border-color:var(--ink-faint);color:#fff;}
+  .status-hair-note{
+    height:30px;border-radius:7px;border:1px solid var(--line);padding:0 8px;
+    font-size:12px;font-family:'Sarabun',sans-serif;color:var(--ink-soft);
   }
 
   .admin-panel{margin-top:26px;}
@@ -207,15 +237,31 @@
     <h2>ตรวจเครื่องแต่งกาย</h2>
     <p class="hint">ครูที่ปรึกษาบันทึกผลการตรวจได้เลยโดยไม่ต้องเข้าสู่ระบบ</p>
 
-    <div id="testModeBanner" class="round-banner hidden" style="background:#FBEAE6;color:#B24334;">โหมดทดสอบ — ข้อมูลที่บันทึกในหน้านี้จะไม่ส่งผลต่อการตรวจจริงหรือคะแนนนักเรียนจริงเลย</div>
-    <div id="roundBanner" class="round-banner">กำลังโหลดข้อมูลรอบตรวจ...</div>
-
-    <div class="search-row">
-      <select id="gradeSelect" onchange="onGradeChange()"><option value="">เลือกชั้น</option></select>
-      <select id="roomSelect" onchange="renderStudentList()"><option value="">เลือกห้อง</option></select>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabRecordBtn" onclick="switchMainView('record')">บันทึกการตรวจ</button>
+      <button class="tab-btn" id="tabAdminStatusBtn" onclick="switchMainView('adminStatus')">ตรวจสอบ/แก้ไขสถานะ (ผู้ดูแล)</button>
     </div>
 
-    <div id="studentListWrap"></div>
+    <div id="viewRecord" style="margin-top:20px;">
+      <div id="testModeBanner" class="round-banner hidden" style="background:#FBEAE6;color:#B24334;">โหมดทดสอบ — ข้อมูลที่บันทึกในหน้านี้จะไม่ส่งผลต่อการตรวจจริงหรือคะแนนนักเรียนจริงเลย</div>
+      <div id="roundBanner" class="round-banner">กำลังโหลดข้อมูลรอบตรวจ...</div>
+
+      <div class="search-row">
+        <select id="gradeSelect" onchange="onGradeChange()"><option value="">เลือกชั้น</option></select>
+        <select id="roomSelect" onchange="renderStudentList()"><option value="">เลือกห้อง</option></select>
+      </div>
+
+      <div id="studentListWrap"></div>
+    </div>
+
+    <div id="viewAdminStatus" class="hidden" style="margin-top:20px;">
+      <p class="hint">ดูสถานะทุกคนในห้อง (ทั้งผ่านและยังไม่ผ่าน) และแก้ไขสถานะรายรายการได้โดยตรง</p>
+      <div class="search-row">
+        <select id="adminGradeSelect" onchange="onAdminGradeChange()"><option value="">เลือกชั้น</option></select>
+        <select id="adminRoomSelect" onchange="renderAdminStatusTable()"><option value="">เลือกห้อง</option></select>
+      </div>
+      <div id="adminStatusWrap"></div>
+    </div>
   </div>
 
   <div class="section admin-panel hidden" id="adminPanel">
@@ -446,6 +492,143 @@ function populateRoomOptions() {
 function onGradeChange() {
   populateRoomOptions();
   renderStudentList();
+}
+
+/* ===================== Admin status view/edit ===================== */
+
+let currentMainView = "record";
+
+function switchMainView(view) {
+  currentMainView = view;
+  document.getElementById("tabRecordBtn").classList.toggle("active", view === "record");
+  document.getElementById("tabAdminStatusBtn").classList.toggle("active", view === "adminStatus");
+  document.getElementById("viewRecord").classList.toggle("hidden", view !== "record");
+  document.getElementById("viewAdminStatus").classList.toggle("hidden", view !== "adminStatus");
+  if (view === "adminStatus") {
+    populateAdminGradeOptions();
+    renderAdminStatusTable();
+  }
+}
+
+function populateAdminGradeOptions() {
+  const sel = document.getElementById("adminGradeSelect");
+  const grades = Array.from(new Set(students.map(s => s.grade))).sort((a, b) => a - b);
+  sel.innerHTML = '<option value="">เลือกชั้น</option>' + grades.map(g => `<option value="${g}">${GRADE_NAMES[g] || ("ม." + g)}</option>`).join("");
+}
+
+function populateAdminRoomOptions() {
+  const g = document.getElementById("adminGradeSelect").value;
+  const sel = document.getElementById("adminRoomSelect");
+  let rooms = [];
+  if (g) rooms = Array.from(new Set(students.filter(s => String(s.grade) === g).map(s => s.room))).sort((a, b) => a - b);
+  sel.innerHTML = '<option value="">เลือกห้อง</option>' + rooms.map(r => `<option value="${r}">ห้อง ${r}</option>`).join("");
+}
+
+function onAdminGradeChange() {
+  populateAdminRoomOptions();
+  renderAdminStatusTable();
+}
+
+function renderAdminStatusTable() {
+  const wrap = document.getElementById("adminStatusWrap");
+
+  if (!isAdmin) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <i class="ti ti-lock"></i>
+        <p>ส่วนนี้สำหรับผู้ดูแลเท่านั้น — กดปุ่ม "โหมดผู้ดูแล" มุมขวาบน แล้วกรอกรหัสผ่านก่อน</p>
+      </div>
+    `;
+    return;
+  }
+
+  const grade = document.getElementById("adminGradeSelect").value;
+  const room = document.getElementById("adminRoomSelect").value;
+  if (!grade || !room) {
+    wrap.innerHTML = `<div class="empty-state"><i class="ti ti-clipboard-list"></i><p>เลือกชั้นและห้องเพื่อดูสถานะทุกคน</p></div>`;
+    return;
+  }
+
+  const list = students
+    .filter(s => String(s.grade) === grade && String(s.room) === room)
+    .sort((a, b) => a.no - b.no);
+
+  if (list.length === 0) {
+    wrap.innerHTML = `<div class="empty-state"><p>ไม่พบนักเรียนในห้องนี้</p></div>`;
+    return;
+  }
+
+  const passedCount = list.filter(s => isFullyPassed(s)).length;
+  const summary = `<p class="hint" style="margin-bottom:10px;">ผ่านครบแล้ว ${passedCount} จาก ${list.length} คน</p>`;
+
+  const rows = list.map(s => renderAdminStatusRow(s)).join("");
+  wrap.innerHTML = summary + rows;
+}
+
+function renderAdminStatusRow(s) {
+  const st = studentStatus(s);
+  const items = applicableItems(s.name);
+  const fullyPassed = isFullyPassed(s);
+
+  const itemRows = items.map(item => {
+    const val = st[item] || "";
+    const hairNoteControl = (item === "hair" && isFemale(s.name)) ? `
+      <select class="status-hair-note" onchange="adminSetHairNote('${s.id}', this.value)">
+        <option value="">หมายเหตุทรงผม</option>
+        <option value="short" ${st.hairNote === "short" ? "selected" : ""}>ผมสั้น</option>
+        <option value="long" ${st.hairNote === "long" ? "selected" : ""}>ผมยาว</option>
+        <option value="lgbtq" ${st.hairNote === "lgbtq" ? "selected" : ""}>ผม LGBTQ+</option>
+      </select>` : "";
+    return `
+      <div class="status-item-row">
+        <div class="status-item-label">${ITEM_LABELS[item]}</div>
+        <div class="status-btn-group">
+          ${hairNoteControl}
+          <button class="status-btn pass ${val === "pass" ? "active" : ""}" onclick="adminSetItemStatus('${s.id}','${item}','pass')">ผ่าน</button>
+          <button class="status-btn fail ${val === "fail" ? "active" : ""}" onclick="adminSetItemStatus('${s.id}','${item}','fail')">ไม่ผ่าน</button>
+          <button class="status-btn clear ${val === "" ? "active" : ""}" onclick="adminSetItemStatus('${s.id}','${item}','')">ยังไม่ตรวจ</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  return `
+    <div class="status-row ${fullyPassed ? "fully-passed" : ""}">
+      <div class="name">${escapeHtml(s.name)}</div>
+      <div class="meta">เลขที่ ${s.no} · รหัส ${s.id} · ม.${s.grade}/${s.room}${fullyPassed ? " · ผ่านครบแล้ว" : ""}</div>
+      ${itemRows}
+    </div>
+  `;
+}
+
+async function adminSetItemStatus(id, item, status) {
+  if (!isAdmin) {
+    toast("กรุณาเข้าสู่ระบบผู้ดูแลก่อน");
+    return;
+  }
+  const res = await apiPost({ action: saveItemActionName(), passcode: adminPasscodeEntered, id, item, status, hairNote: "" });
+  if (res && res.ok) {
+    if (!uniformRows[id]) uniformRows[id] = { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
+    uniformRows[id][item] = status;
+    toast("บันทึกแล้ว");
+    renderAdminStatusTable();
+  } else {
+    toast("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
+  }
+}
+
+async function adminSetHairNote(id, hairNote) {
+  if (!isAdmin) return;
+  const st = uniformRows[id] || { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
+  const currentHair = st.hair || "";
+  const res = await apiPost({ action: saveItemActionName(), passcode: adminPasscodeEntered, id, item: "hair", status: currentHair, hairNote });
+  if (res && res.ok) {
+    if (!uniformRows[id]) uniformRows[id] = { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
+    uniformRows[id].hairNote = hairNote;
+    toast("บันทึกแล้ว");
+  } else {
+    toast("บันทึกไม่สำเร็จ");
+  }
 }
 
 function studentStatus(s) {
@@ -694,6 +877,10 @@ function updateAdminUI() {
   pillText.textContent = isAdmin ? "โหมดผู้ดูแล (เปิดอยู่)" : "โหมดผู้ดูแล";
   document.getElementById("adminPanel").classList.toggle("hidden", !isAdmin);
   renderStudentList(); // login/logout changes whether the checklist can be shown at all
+  if (currentMainView === "adminStatus") {
+    populateAdminGradeOptions();
+    renderAdminStatusTable();
+  }
 }
 
 function fillConfigInputs() {
