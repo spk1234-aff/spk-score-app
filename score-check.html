@@ -1243,6 +1243,7 @@ function onAdminPillClick() {
   if (isAdmin) {
     isAdmin = false;
     adminPasscodeEntered = null;
+    sessionStorage.removeItem("spk_admin_passcode");
     updateAdminUI();
     toast("ออกจากโหมดผู้ดูแลแล้ว");
     if (currentTab === "log") switchTab("search");
@@ -1297,6 +1298,7 @@ async function submitLogin() {
   if (ok) {
     isAdmin = true;
     adminPasscodeEntered = val;
+    sessionStorage.setItem("spk_admin_passcode", val);
     editLog = await loadLog(); // re-fetch now that we actually have a valid passcode to send
     updateAdminUI();
     closeLogin();
@@ -1937,8 +1939,22 @@ async function init() {
   updateStorageBanner();
   populateGradeOptions();
   populateRoomOptions();
+  await tryRestoreAdminSession();
   updateAdminUI();
   renderResults();
+}
+
+async function tryRestoreAdminSession() {
+  const stored = sessionStorage.getItem("spk_admin_passcode");
+  if (!stored) return;
+  const ok = await cloudCheckPasscode(stored);
+  if (ok) {
+    isAdmin = true;
+    adminPasscodeEntered = stored;
+    editLog = await loadLog(); // re-fetch with the now-valid passcode
+  } else {
+    sessionStorage.removeItem("spk_admin_passcode"); // stale/changed passcode — drop it
+  }
 }
 
 init();
