@@ -836,6 +836,7 @@ function onAdminPillClick() {
   if (isAdmin) {
     isAdmin = false;
     adminPasscodeEntered = null;
+    sessionStorage.removeItem("spk_admin_passcode");
     updateAdminUI();
     toast("ออกจากโหมดผู้ดูแลแล้ว");
   } else {
@@ -866,6 +867,7 @@ async function submitLogin() {
   if (res && res.ok) {
     isAdmin = true;
     adminPasscodeEntered = val;
+    sessionStorage.setItem("spk_admin_passcode", val);
     updateAdminUI();
     closeLogin();
     toast("เข้าสู่โหมดผู้ดูแลแล้ว");
@@ -951,7 +953,23 @@ async function doFinalize() {
   }
 }
 
-loadAll();
+async function tryRestoreAdminSession() {
+  const stored = sessionStorage.getItem("spk_admin_passcode");
+  if (!stored) return;
+  const res = await apiPost({ action: "checkPasscode", passcode: stored });
+  if (res && res.ok) {
+    isAdmin = true;
+    adminPasscodeEntered = stored;
+  } else {
+    sessionStorage.removeItem("spk_admin_passcode"); // stale/changed passcode — drop it
+  }
+}
+
+(async function initPage() {
+  await tryRestoreAdminSession();
+  await loadAll();
+  if (isAdmin) updateAdminUI();
+})();
 
 </script>
 
