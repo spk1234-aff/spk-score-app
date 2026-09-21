@@ -390,6 +390,32 @@ async function apiGet(action) {
   }
 }
 
+// The full student roster (1,862+ students) rarely changes within a short window and is
+// fetched on every page load. Caching it in the browser for a short time makes navigating
+// between pages (or refreshing) feel instant instead of re-downloading the whole roster.
+const STUDENTS_CACHE_KEY = "spk_students_cache_v1";
+const STUDENTS_CACHE_TTL_MS = 45000;
+
+async function apiGetStudentsCached() {
+  try {
+    const cachedRaw = sessionStorage.getItem(STUDENTS_CACHE_KEY);
+    if (cachedRaw) {
+      const cached = JSON.parse(cachedRaw);
+      if (Date.now() - cached.t < STUDENTS_CACHE_TTL_MS) {
+        return { ok: true, students: cached.data };
+      }
+    }
+  } catch (e) {}
+
+  const res = await apiGet("students");
+  if (res && res.ok) {
+    try {
+      sessionStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify({ t: Date.now(), data: res.students }));
+    } catch (e) {} // storage full/unavailable — not fatal, just skip caching
+  }
+  return res;
+}
+
 async function apiPost(payload) {
   try {
     const res = await fetch(API_URL, {
@@ -425,7 +451,7 @@ function onTestModeToggle() {
 
 async function loadAll() {
   const [studentsRes, configRes, statusRes] = await Promise.all([
-    apiGet("students"),
+    apiGetStudentsCached(),
     apiGet(configActionName()),
     apiGet(statusActionName())
   ]);
