@@ -918,11 +918,35 @@ function detectStorageMode() {
   }
 }
 
+// The full student roster (1,862+ students) rarely changes within a short window and is
+// fetched on every page load. Caching it in the browser for a short time makes navigating
+// between pages (or refreshing) feel instant instead of re-downloading the whole roster.
+// Shared key/format with the uniform-check and exam-card pages, so logging into any page
+// re-uses the same recent fetch rather than starting cold.
+const STUDENTS_CACHE_KEY = "spk_students_cache_v1";
+const STUDENTS_CACHE_TTL_MS = 45000;
+
 async function cloudGetStudents() {
+  try {
+    const cachedRaw = sessionStorage.getItem(STUDENTS_CACHE_KEY);
+    if (cachedRaw) {
+      const cached = JSON.parse(cachedRaw);
+      if (Date.now() - cached.t < STUDENTS_CACHE_TTL_MS) {
+        return cached.data;
+      }
+    }
+  } catch (e) {}
+
   try {
     const res = await fetch(API_URL + "?action=students&_=" + Date.now(), { cache: "no-store" });
     const data = await res.json();
-    return (data && data.ok) ? data.students : null;
+    if (data && data.ok) {
+      try {
+        sessionStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify({ t: Date.now(), data: data.students }));
+      } catch (e) {} // storage full/unavailable — not fatal, just skip caching
+      return data.students;
+    }
+    return null;
   } catch (e) {
     return null;
   }
@@ -1049,7 +1073,11 @@ async function loadStudents() {
 async function saveStudents() {
   if (STORAGE_MODE === "cloud") {
     const ok = await cloudPost({ action: "saveStudents", passcode: adminPasscodeEntered, students });
-    if (!ok) toast("บันทึกข้อมูลไม่สำเร็จ ตรวจสอบการเชื่อมต่อหรือรหัสผ่าน");
+    if (!ok) {
+      toast("บันทึกข้อมูลไม่สำเร็จ ตรวจสอบการเชื่อมต่อหรือรหัสผ่าน");
+    } else {
+      sessionStorage.removeItem(STUDENTS_CACHE_KEY); // scores just changed — don't serve the stale cache anymore
+    }
     return ok;
   }
   const ok = await storageSet(STORAGE_KEY, JSON.stringify(students));
