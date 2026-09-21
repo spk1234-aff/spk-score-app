@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ย้ายข้อมูลนักเรียนเข้า Firestore (ใช้ครั้งเดียว)</title>
+<style>
+  body{font-family:sans-serif;max-width:700px;margin:40px auto;padding:0 20px;background:#F7F5EF;color:#232323;}
+  h1{font-size:20px;color:#16324F;}
+  p{font-size:14px;color:#5C5A53;line-height:1.6;}
+  button{
+    height:48px;padding:0 24px;border-radius:10px;border:none;background:#16324F;color:#fff;
+    font-size:15px;cursor:pointer;font-weight:600;
+  }
+  button:disabled{background:#ccc;cursor:not-allowed;}
+  pre{
+    background:#fff;border:1px solid #E4E0D4;border-radius:10px;padding:16px;
+    font-size:13px;white-space:pre-wrap;min-height:100px;margin-top:20px;
+  }
+  .warn{background:#FBEAE6;color:#B24334;padding:12px 16px;border-radius:10px;font-size:13.5px;margin-bottom:20px;}
+</style>
+</head>
+<body>
+
+<h1>ย้ายข้อมูลนักเรียนเข้า Firestore</h1>
+<div class="warn">
+  หน้านี้ใช้ครั้งเดียวเท่านั้น! อย่ากดปุ่มซ้ำหลังจากที่ย้ายสำเร็จแล้ว เพราะจะเขียนทับข้อมูลเดิมด้วยค่าปัจจุบันจาก Google Sheet (ถ้าคะแนนมีการเปลี่ยนแปลงหลังจากย้ายไปแล้ว ควรระวัง)
+</div>
+<p>กดปุ่มด้านล่างเพื่อดึงข้อมูลนักเรียนทั้งหมดจาก Google Sheet (ผ่าน API เดิม) แล้วเขียนเข้า Firestore โดยอัตโนมัติ ใช้เวลาประมาณ 1-2 นาที</p>
+
+<button id="startBtn">เริ่มย้ายข้อมูล</button>
+
+<pre id="log">รอกดปุ่มเริ่ม...</pre>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCyjqbIFbG365X_O8w04Padi5eH6BITKTU",
+  authDomain: "spk-score-system.firebaseapp.com",
+  projectId: "spk-score-system",
+  storageBucket: "spk-score-system.firebasestorage.app",
+  messagingSenderId: "568980787667",
+  appId: "1:568980787667:web:daa2a6906b128271151f26"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const STUDENTS_API = "https://script.google.com/macros/s/AKfycbxFNF8-eFidJYrKf3bBCmlkz50HF1_NH0IpbybJdNHjgWGJBDmPQpQVH8RYleh8gJ80Fg/exec?action=students";
+
+const logEl = document.getElementById("log");
+function log(msg) {
+  logEl.textContent += "\n" + msg;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+document.getElementById("startBtn").onclick = async () => {
+  const btn = document.getElementById("startBtn");
+  btn.disabled = true;
+  logEl.textContent = "กำลังดึงข้อมูลนักเรียนจาก Google Sheet...";
+
+  try {
+    const res = await fetch(STUDENTS_API);
+    const data = await res.json();
+    if (!data.ok) {
+      log("ดึงข้อมูลไม่สำเร็จ: " + JSON.stringify(data));
+      btn.disabled = false;
+      return;
+    }
+    const students = data.students;
+    log(`พบนักเรียนทั้งหมด ${students.length} คน กำลังเขียนเข้า Firestore...`);
+
+    const BATCH_SIZE = 400;
+    let total = 0;
+    for (let i = 0; i < students.length; i += BATCH_SIZE) {
+      const chunk = students.slice(i, i + BATCH_SIZE);
+      const batch = db.batch();
+      chunk.forEach(s => {
+        const ref = db.collection("students").doc(String(s.id));
+        batch.set(ref, {
+          id: String(s.id),
+          no: Number(s.no),
+          name: String(s.name),
+          grade: Number(s.grade),
+          room: Number(s.room),
+          say: Number(s.say || 0),
+          khun: Number(s.khun || 0)
+        });
+      });
+      await batch.commit();
+      total += chunk.length;
+      log(`เขียนแล้ว ${total} / ${students.length} คน...`);
+    }
+
+    log("\n✅ เสร็จสิ้น! ย้ายข้อมูลนักเรียนทั้งหมดเข้า Firestore เรียบร้อยแล้ว");
+    log("ตอนนี้กลับไปบอก Claude ได้เลยว่าเสร็จแล้ว เพื่อไปขั้นตอนล็อกความปลอดภัยกลับคืน");
+  } catch (e) {
+    log("เกิดข้อผิดพลาด: " + e.message);
+    btn.disabled = false;
+  }
+};
+</script>
+
+</body>
+</html>
