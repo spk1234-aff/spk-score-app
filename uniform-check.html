@@ -421,6 +421,21 @@ async function apiGetStudentsCached() {
     }
   } catch (e) {}
 
+  // Try Firestore first — it's now the live source of truth for student scores too
+  // (score-check.html writes here directly), so this is fast AND always up to date.
+  try {
+    const snap = await firebaseDb.collection("students").get();
+    const students = [];
+    snap.forEach(doc => students.push(doc.data()));
+    if (students.length > 0) {
+      try {
+        sessionStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify({ t: Date.now(), data: students }));
+      } catch (e) {}
+      return { ok: true, students };
+    }
+  } catch (e) {}
+
+  // Fallback to Apps Script if Firestore is ever unreachable for any reason.
   const res = await apiGet("students");
   if (res && res.ok) {
     try {
