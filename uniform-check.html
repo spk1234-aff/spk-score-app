@@ -283,11 +283,9 @@
       <button class="btn btn-danger" onclick="confirmFinalize()">ปิดรอบตรวจ</button>
       <span id="roundClosedTag" class="hint" style="margin-left:10px;"></span>
       <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
-      <div class="field">
-        <label>ตั้ง/เปลี่ยนรหัสผ่านสำหรับครูตรวจเครื่องแต่งกาย</label>
-        <input type="password" id="teacherPasscodeInput" placeholder="รหัสผ่านใหม่สำหรับครู">
-      </div>
-      <button class="btn btn-primary" onclick="saveTeacherPasscodeValue()">บันทึกรหัสผ่านครู</button>
+      <p style="font-size:13.5px;color:var(--ink-soft);margin:0;">
+        เปลี่ยนรหัสผ่านครูตรวจเครื่องแต่งกาย — ตอนนี้ทำผ่านหน้าเว็บนี้ไม่ได้แล้ว (ระบบเปลี่ยนไปใช้บัญชีเข้าสู่ระบบที่ปลอดภัยกว่าเดิม) ต้องเข้าไปเปลี่ยนที่ Firebase Console > Authentication > Users > บัญชี uniform@spk-score-system.local > Reset password
+      </p>
     </div>
   </div>
 
@@ -343,6 +341,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyCyjqbIFbG365X_O8w04Padi5eH6BITKTU",
@@ -354,6 +353,7 @@
   };
   firebase.initializeApp(firebaseConfig);
   const firebaseDb = firebase.firestore();
+  const firebaseAuth = firebase.auth();
 </script>
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxFNF8-eFidJYrKf3bBCmlkz50HF1_NH0IpbybJdNHjgWGJBDmPQpQVH8RYleh8gJ80Fg/exec";
@@ -464,15 +464,26 @@ function onTestModeToggle() {
 }
 
 async function firestoreGetUniformStatus() {
-  // TEMPORARILY DISABLED: Firestore is only a snapshot from migration time and doesn't
-  // receive new writes yet (writes still go to Apps Script only), so reading it here
-  // showed stale "not yet checked" data for people already recorded. Disabled until a
-  // proper write-sync is built. Always falls through to Apps Script for now.
-  return null;
+  // Re-enabled: writes now ALSO go to Firestore directly (see saveStudent()), so
+  // Firestore is the single source of truth for real (non-test) mode — no more
+  // staleness risk. Test mode still uses Apps Script (never migrated, disposable sandbox).
+  try {
+    const snap = await firebaseDb.collection("uniformCheck").get();
+    const rows = [];
+    snap.forEach(doc => rows.push(doc.data()));
+    return rows;
+  } catch (e) {
+    return null; // Firestore unavailable — caller falls back to Apps Script
+  }
 }
 
 async function firestoreGetUniformConfig() {
-  return null; // see note in firestoreGetUniformStatus() above
+  try {
+    const doc = await firebaseDb.collection("config").doc("uniformConfig").get();
+    return doc.exists ? doc.data() : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 async function loadAll() {
@@ -687,27 +698,33 @@ async function adminSetItemStatus(id, item, status) {
     toast("กรุณาเข้าสู่ระบบผู้ดูแลก่อน");
     return;
   }
-  const res = await apiPost({ action: saveItemActionName(), passcode: adminPasscodeEntered, id, item, status, hairNote: "" });
-  if (res && res.ok) {
+  try {
+    await firebaseDb.collection("uniformCheck").doc(String(id)).set({
+      id: String(id),
+      [item]: status,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
     if (!uniformRows[id]) uniformRows[id] = { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
     uniformRows[id][item] = status;
     toast("บันทึกแล้ว");
     renderAdminStatusTable();
-  } else {
+  } catch (e) {
     toast("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
   }
 }
 
 async function adminSetHairNote(id, hairNote) {
   if (!isAdmin) return;
-  const st = uniformRows[id] || { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
-  const currentHair = st.hair || "";
-  const res = await apiPost({ action: saveItemActionName(), passcode: adminPasscodeEntered, id, item: "hair", status: currentHair, hairNote });
-  if (res && res.ok) {
+  try {
+    await firebaseDb.collection("uniformCheck").doc(String(id)).set({
+      id: String(id),
+      hairNote: hairNote,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
     if (!uniformRows[id]) uniformRows[id] = { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
     uniformRows[id].hairNote = hairNote;
     toast("บันทึกแล้ว");
-  } else {
+  } catch (e) {
     toast("บันทึกไม่สำเร็จ");
   }
 }
@@ -742,18 +759,18 @@ async function submitTeacherLogin() {
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = "กำลังตรวจสอบ...";
-  const res = await apiPost({ action: "checkTeacherPasscode", scope: "uniform", passcode: val });
-  btn.disabled = false;
-  btn.textContent = originalText;
-  if (res && res.ok) {
+  try {
+    await firebaseAuth.signInWithEmailAndPassword("uniform@spk-score-system.local", val);
     isTeacherLoggedIn = true;
     teacherPasscodeEntered = val;
     toast("เข้าสู่ระบบแล้ว");
     renderStudentList();
-  } else {
+  } catch (e) {
     errEl.textContent = "รหัสผ่านไม่ถูกต้อง";
     errEl.classList.remove("hidden");
   }
+  btn.disabled = false;
+  btn.textContent = originalText;
 }
 
 function renderStudentList() {
@@ -877,22 +894,37 @@ async function saveStudent(id) {
 
   const hairNoteEl = document.getElementById("hairNote-" + id);
   const hairNote = hairNoteEl ? hairNoteEl.value : "";
-
   const items = Object.keys(sel);
-  // One request for the whole student, not one per item — much faster on the server
-  // (single lock + single row lookup + single flush instead of one of each per item).
-  const res = await apiPost({
-    action: saveItemsBatchActionName(),
-    passcode: currentWritePasscode(),
-    id,
-    items: sel,
-    hairNote: items.includes("hair") ? hairNote : ""
-  });
+  let allOk = false;
+
+  if (testMode) {
+    // Test mode data was never migrated to Firestore — keep using Apps Script's sandbox sheet.
+    const res = await apiPost({
+      action: saveItemsBatchActionName(),
+      passcode: currentWritePasscode(),
+      id, items: sel,
+      hairNote: items.includes("hair") ? hairNote : ""
+    });
+    allOk = !!(res && res.ok);
+  } else {
+    // Real mode: write straight to Firestore. set(..., {merge:true}) atomically creates
+    // the doc if it doesn't exist yet, or merges into the existing one — Firestore itself
+    // serializes concurrent writes to the same document, so no manual locking is needed
+    // (unlike the Apps Script version, which needed a lock to avoid duplicate rows).
+    try {
+      const updateData = Object.assign({}, sel);
+      updateData.id = String(id);
+      updateData.updatedAt = new Date().toISOString();
+      if (items.includes("hair") && hairNote) updateData.hairNote = hairNote;
+      await firebaseDb.collection("uniformCheck").doc(String(id)).set(updateData, { merge: true });
+      allOk = true;
+    } catch (e) {
+      allOk = false;
+    }
+  }
 
   if (!uniformRows[id]) uniformRows[id] = { hair: "", hairNote: "", nail: "", sock: "", bow: "" };
-  let allOk = false;
-  if (res && res.ok) {
-    allOk = true;
+  if (allOk) {
     items.forEach(item => {
       uniformRows[id][item] = sel[item];
       if (item === "hair" && hairNote) uniformRows[id].hairNote = hairNote;
@@ -914,6 +946,7 @@ async function saveStudent(id) {
 
 function onAdminPillClick() {
   if (isAdmin) {
+    firebaseAuth.signOut();
     isAdmin = false;
     adminPasscodeEntered = null;
     sessionStorage.removeItem("spk_admin_passcode");
@@ -940,11 +973,9 @@ async function submitLogin() {
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = "กำลังตรวจสอบ...";
-  const res = await apiPost({ action: "checkPasscode", passcode: val });
-  btn.disabled = false;
-  btn.textContent = originalText;
 
-  if (res && res.ok) {
+  try {
+    await firebaseAuth.signInWithEmailAndPassword("admin@spk-score-system.local", val);
     isAdmin = true;
     adminPasscodeEntered = val;
     sessionStorage.setItem("spk_admin_passcode", val);
@@ -952,10 +983,12 @@ async function submitLogin() {
     closeLogin();
     toast("เข้าสู่โหมดผู้ดูแลแล้ว");
     fillConfigInputs();
-  } else {
+  } catch (e) {
     errEl.textContent = "รหัสผ่านไม่ถูกต้อง";
     errEl.classList.remove("hidden");
   }
+  btn.disabled = false;
+  btn.textContent = originalText;
 }
 
 function updateAdminUI() {
@@ -981,28 +1014,24 @@ function fillConfigInputs() {
 
 async function saveUniformConfigDates() {
   const dates = [1, 2, 3, 4, 5].map(i => document.getElementById("date" + i).value || "");
-  const res = await apiPost({ action: saveConfigActionName(), passcode: adminPasscodeEntered, dates });
-  if (res && res.ok) {
+  let ok = false;
+  if (testMode) {
+    const res = await apiPost({ action: saveConfigActionName(), passcode: adminPasscodeEntered, dates });
+    ok = !!(res && res.ok);
+  } else {
+    try {
+      await firebaseDb.collection("config").doc("uniformConfig").set({ dates, closed: false });
+      ok = true;
+    } catch (e) {
+      ok = false;
+    }
+  }
+  if (ok) {
     uniformConfig = { dates, closed: false };
     toast("บันทึกวันที่ตรวจแล้ว");
     renderRoundBanner();
     fillConfigInputs();
     renderStudentList();
-  } else {
-    toast("บันทึกไม่สำเร็จ");
-  }
-}
-
-async function saveTeacherPasscodeValue() {
-  const val = document.getElementById("teacherPasscodeInput").value;
-  if (!val) {
-    toast("กรุณากรอกรหัสผ่านใหม่");
-    return;
-  }
-  const res = await apiPost({ action: "saveTeacherPasscode", passcode: adminPasscodeEntered, scope: "uniform", newPasscode: val });
-  if (res && res.ok) {
-    toast("บันทึกรหัสผ่านครูแล้ว");
-    document.getElementById("teacherPasscodeInput").value = "";
   } else {
     toast("บันทึกไม่สำเร็จ");
   }
@@ -1021,14 +1050,46 @@ function closeConfirm() {
   document.getElementById("confirmOverlay").classList.add("hidden");
 }
 
+const UNIFORM_PENALTY = 50;
+
 async function doFinalize() {
   closeConfirm();
-  const res = await apiPost({ action: finalizeActionName(), passcode: adminPasscodeEntered });
-  if (res && res.ok) {
-    const count = res.result ? res.result.penalizedCount : 0;
-    toast(testMode ? `ทดสอบเสร็จสิ้น — จะมี ${count} คนที่โดนปรับ (ไม่กระทบจริง)` : `ปิดรอบสำเร็จ — ปรับคะแนน ${count} คน`);
+
+  if (testMode) {
+    const res = await apiPost({ action: finalizeActionName(), passcode: adminPasscodeEntered });
+    if (res && res.ok) {
+      const count = res.result ? res.result.penalizedCount : 0;
+      toast(`ทดสอบเสร็จสิ้น — จะมี ${count} คนที่โดนปรับ (ไม่กระทบจริง)`);
+      await loadAll();
+    } else {
+      toast("ปิดรอบไม่สำเร็จ ลองใหม่อีกครั้ง");
+    }
+    return;
+  }
+
+  // Real mode: apply the +50 penalty directly via Firestore, in batches for safety with
+  // large student counts (Firestore allows up to 500 writes per batch).
+  try {
+    const notPassed = students.filter(s => !isFullyPassed(s));
+    const BATCH_SIZE = 400;
+    let penalizedCount = 0;
+    for (let i = 0; i < notPassed.length; i += BATCH_SIZE) {
+      const chunk = notPassed.slice(i, i + BATCH_SIZE);
+      const batch = firebaseDb.batch();
+      chunk.forEach(s => {
+        const ref = firebaseDb.collection("students").doc(String(s.id));
+        batch.update(ref, { khun: s.khun + UNIFORM_PENALTY });
+      });
+      await batch.commit();
+      penalizedCount += chunk.length;
+    }
+    await firebaseDb.collection("config").doc("uniformConfig").set(
+      { dates: uniformConfig.dates, closed: true }, { merge: true }
+    );
+    sessionStorage.removeItem(STUDENTS_CACHE_KEY); // scores changed — don't serve the stale cache
+    toast(`ปิดรอบสำเร็จ — ปรับคะแนน ${penalizedCount} คน`);
     await loadAll();
-  } else {
+  } catch (e) {
     toast("ปิดรอบไม่สำเร็จ ลองใหม่อีกครั้ง");
   }
 }
@@ -1036,11 +1097,11 @@ async function doFinalize() {
 async function tryRestoreAdminSession() {
   const stored = sessionStorage.getItem("spk_admin_passcode");
   if (!stored) return;
-  const res = await apiPost({ action: "checkPasscode", passcode: stored });
-  if (res && res.ok) {
+  try {
+    await firebaseAuth.signInWithEmailAndPassword("admin@spk-score-system.local", stored);
     isAdmin = true;
     adminPasscodeEntered = stored;
-  } else {
+  } catch (e) {
     sessionStorage.removeItem("spk_admin_passcode"); // stale/changed passcode — drop it
   }
 }
