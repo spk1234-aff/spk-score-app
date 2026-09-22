@@ -448,35 +448,19 @@ async function apiPost(payload) {
 /* ===================== Load ===================== */
 
 async function firestoreGetUniformStatus() {
-  try {
-    const snap = await firebaseDb.collection("uniformCheck").get();
-    const rows = [];
-    snap.forEach(doc => rows.push(doc.data()));
-    return rows;
-  } catch (e) {
-    return null; // Firestore unavailable — caller falls back to Apps Script
-  }
+  // TEMPORARILY DISABLED: Firestore is only a snapshot from migration time and doesn't
+  // receive new writes yet (writes still go to Apps Script only), so reading it here
+  // showed stale "not yet received/checked" data for people already recorded. Disabled
+  // until a proper write-sync is built. Always falls through to Apps Script for now.
+  return null;
 }
 
 async function firestoreGetExamCardStatus(term) {
-  try {
-    const collName = term === "final" ? "examCard_final" : "examCard_midterm";
-    const snap = await firebaseDb.collection(collName).get();
-    const rows = [];
-    snap.forEach(doc => rows.push(doc.data()));
-    return rows;
-  } catch (e) {
-    return null;
-  }
+  return null; // see note in firestoreGetUniformStatus() above
 }
 
 async function firestoreGetExamCardConfig() {
-  try {
-    const doc = await firebaseDb.collection("config").doc("examCardConfig").get();
-    return doc.exists ? doc.data() : null;
-  } catch (e) {
-    return null;
-  }
+  return null; // see note in firestoreGetUniformStatus() above
 }
 
 async function loadAll() {
