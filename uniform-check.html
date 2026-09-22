@@ -464,23 +464,15 @@ function onTestModeToggle() {
 }
 
 async function firestoreGetUniformStatus() {
-  try {
-    const snap = await firebaseDb.collection("uniformCheck").get();
-    const rows = [];
-    snap.forEach(doc => rows.push(doc.data()));
-    return rows;
-  } catch (e) {
-    return null; // Firestore unavailable — caller falls back to Apps Script
-  }
+  // TEMPORARILY DISABLED: Firestore is only a snapshot from migration time and doesn't
+  // receive new writes yet (writes still go to Apps Script only), so reading it here
+  // showed stale "not yet checked" data for people already recorded. Disabled until a
+  // proper write-sync is built. Always falls through to Apps Script for now.
+  return null;
 }
 
 async function firestoreGetUniformConfig() {
-  try {
-    const doc = await firebaseDb.collection("config").doc("uniformConfig").get();
-    return doc.exists ? doc.data() : null;
-  } catch (e) {
-    return null;
-  }
+  return null; // see note in firestoreGetUniformStatus() above
 }
 
 async function loadAll() {
