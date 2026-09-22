@@ -941,14 +941,11 @@ const STUDENTS_CACHE_KEY = "spk_students_cache_v1";
 const STUDENTS_CACHE_TTL_MS = 45000;
 
 async function firestoreGetStudents() {
-  try {
-    const snap = await firebaseDb.collection("students").get();
-    const students = [];
-    snap.forEach(doc => students.push(doc.data()));
-    return students;
-  } catch (e) {
-    return null; // Firestore unavailable for any reason — caller falls back to Apps Script
-  }
+  // TEMPORARILY DISABLED: Firestore is only a snapshot from migration time and doesn't
+  // receive new writes yet (admin score edits still go to Apps Script only), so reading
+  // it here could show stale scores after an edit. Disabled until a proper write-sync
+  // is built. Always falls through to Apps Script for now.
+  return null;
 }
 
 async function cloudGetStudents() {
