@@ -282,9 +282,11 @@
       </p>
       <button class="btn btn-danger" onclick="confirmFinalizeExam()">ปิดช่วงรับบัตร (ช่วงที่เปิดอยู่ตอนนี้)</button>
       <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
-      <p style="font-size:13.5px;color:var(--ink-soft);margin:0;">
-        เปลี่ยนรหัสผ่านครูบันทึกรับบัตร — ตอนนี้ทำผ่านหน้าเว็บนี้ไม่ได้แล้ว (ระบบเปลี่ยนไปใช้บัญชีเข้าสู่ระบบที่ปลอดภัยกว่าเดิม) ต้องเข้าไปเปลี่ยนที่ Firebase Console > Authentication > Users > บัญชี examcard@spk-score-system.local > Reset password
-      </p>
+      <div class="field">
+        <label>ตั้ง/เปลี่ยนรหัสผ่านสำหรับครูบันทึกรับบัตร</label>
+        <input type="password" id="teacherPasscodeInput" placeholder="รหัสผ่านใหม่สำหรับครู">
+      </div>
+      <button class="btn btn-primary" onclick="saveTeacherPasscodeValue()">บันทึกรหัสผ่านครู</button>
     </div>
   </div>
 
@@ -339,7 +341,6 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyCyjqbIFbG365X_O8w04Padi5eH6BITKTU",
@@ -351,7 +352,6 @@
   };
   firebase.initializeApp(firebaseConfig);
   const firebaseDb = firebase.firestore();
-  const firebaseAuth = firebase.auth();
 </script>
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxFNF8-eFidJYrKf3bBCmlkz50HF1_NH0IpbybJdNHjgWGJBDmPQpQVH8RYleh8gJ80Fg/exec";
@@ -423,21 +423,6 @@ async function apiGetStudentsCached() {
     }
   } catch (e) {}
 
-  // Try Firestore first — it's now the live source of truth for student scores too
-  // (score-check.html writes here directly), so this is fast AND always up to date.
-  try {
-    const snap = await firebaseDb.collection("students").get();
-    const students = [];
-    snap.forEach(doc => students.push(doc.data()));
-    if (students.length > 0) {
-      try {
-        sessionStorage.setItem(STUDENTS_CACHE_KEY, JSON.stringify({ t: Date.now(), data: students }));
-      } catch (e) {}
-      return { ok: true, students };
-    }
-  } catch (e) {}
-
-  // Fallback to Apps Script if Firestore is ever unreachable for any reason.
   const res = await apiGet("students");
   if (res && res.ok) {
     try {
@@ -463,37 +448,19 @@ async function apiPost(payload) {
 /* ===================== Load ===================== */
 
 async function firestoreGetUniformStatus() {
-  // Re-enabled: uniform-check.html now writes directly to Firestore, so this data is
-  // always current — no more staleness risk.
-  try {
-    const snap = await firebaseDb.collection("uniformCheck").get();
-    const rows = [];
-    snap.forEach(doc => rows.push(doc.data()));
-    return rows;
-  } catch (e) {
-    return null; // Firestore unavailable — caller falls back to Apps Script
-  }
+  // TEMPORARILY DISABLED: Firestore is only a snapshot from migration time and doesn't
+  // receive new writes yet (writes still go to Apps Script only), so reading it here
+  // showed stale "not yet received/checked" data for people already recorded. Disabled
+  // until a proper write-sync is built. Always falls through to Apps Script for now.
+  return null;
 }
 
 async function firestoreGetExamCardStatus(term) {
-  try {
-    const collName = term === "final" ? "examCard_final" : "examCard_midterm";
-    const snap = await firebaseDb.collection(collName).get();
-    const rows = [];
-    snap.forEach(doc => rows.push(doc.data()));
-    return rows;
-  } catch (e) {
-    return null;
-  }
+  return null; // see note in firestoreGetUniformStatus() above
 }
 
 async function firestoreGetExamCardConfig() {
-  try {
-    const doc = await firebaseDb.collection("config").doc("examCardConfig").get();
-    return doc.exists ? doc.data() : null;
-  } catch (e) {
-    return null;
-  }
+  return null; // see note in firestoreGetUniformStatus() above
 }
 
 async function loadAll() {
@@ -678,18 +645,18 @@ async function submitTeacherLogin() {
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = "กำลังตรวจสอบ...";
-  try {
-    await firebaseAuth.signInWithEmailAndPassword("examcard@spk-score-system.local", val);
+  const res = await apiPost({ action: "checkTeacherPasscode", scope: "examcard", passcode: val });
+  btn.disabled = false;
+  btn.textContent = originalText;
+  if (res && res.ok) {
     isTeacherLoggedIn = true;
     teacherPasscodeEntered = val;
     toast("เข้าสู่ระบบแล้ว");
     renderRecordList();
-  } catch (e) {
+  } else {
     errEl.textContent = "รหัสผ่านไม่ถูกต้อง";
     errEl.classList.remove("hidden");
   }
-  btn.disabled = false;
-  btn.textContent = originalText;
 }
 
 function renderRecordList() {
@@ -779,22 +746,9 @@ async function saveSelectedExamCards() {
   btn.disabled = true;
   btn.textContent = "กำลังบันทึก...";
 
-  let ok = false;
-  try {
-    const collName = examConfig.activeTerm === "final" ? "examCard_final" : "examCard_midterm";
-    const now = new Date().toISOString();
-    const batch = firebaseDb.batch();
-    ids.forEach(id => {
-      const ref = firebaseDb.collection(collName).doc(String(id));
-      batch.set(ref, { id: String(id), received: "yes", updatedAt: now }, { merge: true });
-    });
-    await batch.commit();
-    ok = true;
-  } catch (e) {
-    ok = false;
-  }
+  const res = await apiPost({ action: "saveExamCard", passcode: currentWritePasscode(), ids });
 
-  if (ok) {
+  if (res && res.ok) {
     ids.forEach(id => { examRows[id] = { received: "yes", updatedAt: new Date().toISOString() }; });
     toast(`บันทึกการรับบัตรแล้ว ${ids.length} คน`);
     selectedIds = {};
@@ -883,16 +837,13 @@ async function adminSetExamStatus(id, status) {
     toast("กรุณาเข้าสู่ระบบผู้ดูแลก่อน");
     return;
   }
-  try {
-    const collName = examConfig.activeTerm === "final" ? "examCard_final" : "examCard_midterm";
-    await firebaseDb.collection(collName).doc(String(id)).set({
-      id: String(id), received: status, updatedAt: new Date().toISOString()
-    }, { merge: true });
+  const res = await apiPost({ action: "adminSetExamCardStatus", passcode: adminPasscodeEntered, id, status });
+  if (res && res.ok) {
     examRows[id] = { received: status, updatedAt: new Date().toISOString() };
     toast("บันทึกแล้ว");
     renderStatusTable();
     renderRecordList();
-  } catch (e) {
+  } else {
     toast("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง");
   }
 }
@@ -901,7 +852,6 @@ async function adminSetExamStatus(id, status) {
 
 function onAdminPillClick() {
   if (isAdmin) {
-    firebaseAuth.signOut();
     isAdmin = false;
     adminPasscodeEntered = null;
     sessionStorage.removeItem("spk_admin_passcode");
@@ -928,9 +878,11 @@ async function submitLogin() {
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = "กำลังตรวจสอบ...";
+  const res = await apiPost({ action: "checkPasscode", passcode: val });
+  btn.disabled = false;
+  btn.textContent = originalText;
 
-  try {
-    await firebaseAuth.signInWithEmailAndPassword("admin@spk-score-system.local", val);
+  if (res && res.ok) {
     isAdmin = true;
     adminPasscodeEntered = val;
     sessionStorage.setItem("spk_admin_passcode", val);
@@ -938,12 +890,10 @@ async function submitLogin() {
     closeLogin();
     toast("เข้าสู่โหมดผู้ดูแลแล้ว");
     fillConfigInputs();
-  } catch (e) {
+  } else {
     errEl.textContent = "รหัสผ่านไม่ถูกต้อง";
     errEl.classList.remove("hidden");
   }
-  btn.disabled = false;
-  btn.textContent = originalText;
 }
 
 function updateAdminUI() {
@@ -966,14 +916,29 @@ async function saveExamConfigDates() {
   const activeTerm = document.getElementById("termSelect").value || "midterm";
   const startDate = document.getElementById("startDateInput").value || "";
   const endDate = document.getElementById("endDateInput").value || "";
-  try {
-    await firebaseDb.collection("config").doc("examCardConfig").set({ activeTerm, startDate, endDate });
+  const res = await apiPost({ action: "saveExamCardConfig", passcode: adminPasscodeEntered, activeTerm, startDate, endDate });
+  if (res && res.ok) {
     examConfig = { activeTerm, startDate, endDate };
     toast("บันทึกช่วงเวลาแล้ว");
     renderRoundBanner();
     // switching term means the "current" dataset changed — reload everything fresh
     await loadAll();
-  } catch (e) {
+  } else {
+    toast("บันทึกไม่สำเร็จ");
+  }
+}
+
+async function saveTeacherPasscodeValue() {
+  const val = document.getElementById("teacherPasscodeInput").value;
+  if (!val) {
+    toast("กรุณากรอกรหัสผ่านใหม่");
+    return;
+  }
+  const res = await apiPost({ action: "saveTeacherPasscode", passcode: adminPasscodeEntered, scope: "examcard", newPasscode: val });
+  if (res && res.ok) {
+    toast("บันทึกรหัสผ่านครูแล้ว");
+    document.getElementById("teacherPasscodeInput").value = "";
+  } else {
     toast("บันทึกไม่สำเร็จ");
   }
 }
@@ -985,39 +950,14 @@ function closeConfirmExam() {
   document.getElementById("confirmExamOverlay").classList.add("hidden");
 }
 
-const EXAM_CARD_PENALTY = 50;
-
 async function doFinalizeExam() {
   closeConfirmExam();
-  try {
-    const collName = examConfig.activeTerm === "final" ? "examCard_final" : "examCard_midterm";
-    const now = new Date().toISOString();
-    const toPenalize = students.filter(s => {
-      const row = examRows[s.id];
-      return !(row && (row.received === "yes" || row.received === "penalized"));
-    });
-
-    // Each student needs 2 writes (exam status + score update), and a batch tops out at
-    // 500 writes total, so keep well under that per chunk.
-    const CHUNK_SIZE = 200;
-    let penalizedCount = 0;
-    for (let i = 0; i < toPenalize.length; i += CHUNK_SIZE) {
-      const chunk = toPenalize.slice(i, i + CHUNK_SIZE);
-      const batch = firebaseDb.batch();
-      chunk.forEach(s => {
-        const examRef = firebaseDb.collection(collName).doc(String(s.id));
-        batch.set(examRef, { id: String(s.id), received: "penalized", updatedAt: now }, { merge: true });
-        const studentRef = firebaseDb.collection("students").doc(String(s.id));
-        batch.update(studentRef, { khun: s.khun + EXAM_CARD_PENALTY });
-      });
-      await batch.commit();
-      penalizedCount += chunk.length;
-    }
-
-    sessionStorage.removeItem(STUDENTS_CACHE_KEY); // scores changed — don't serve the stale cache
-    toast(`ปิดช่วงรับบัตรสำเร็จ — หักคะแนน ${penalizedCount} คน`);
+  const res = await apiPost({ action: "finalizeExamCard", passcode: adminPasscodeEntered });
+  if (res && res.ok) {
+    const count = res.result ? res.result.penalizedCount : 0;
+    toast(`ปิดช่วงรับบัตรสำเร็จ — หักคะแนน ${count} คน`);
     await loadAll();
-  } catch (e) {
+  } else {
     toast("ปิดช่วงรับบัตรไม่สำเร็จ ลองใหม่อีกครั้ง");
   }
 }
@@ -1025,11 +965,11 @@ async function doFinalizeExam() {
 async function tryRestoreAdminSession() {
   const stored = sessionStorage.getItem("spk_admin_passcode");
   if (!stored) return;
-  try {
-    await firebaseAuth.signInWithEmailAndPassword("admin@spk-score-system.local", stored);
+  const res = await apiPost({ action: "checkPasscode", passcode: stored });
+  if (res && res.ok) {
     isAdmin = true;
     adminPasscodeEntered = stored;
-  } catch (e) {
+  } else {
     sessionStorage.removeItem("spk_admin_passcode");
   }
 }
