@@ -1151,7 +1151,7 @@ async function firestoreGetLog() {
   try {
     const snap = await firebaseDb.collection("log").orderBy("time", "desc").limit(LOG_MAX).get();
     const rows = [];
-    snap.forEach(doc => rows.push(doc.data()));
+    snap.forEach(doc => rows.push(Object.assign({ _docId: doc.id }, doc.data())));
     return rows;
   } catch (e) {
     return null; // Firestore unavailable — caller falls back to Apps Script
@@ -1160,10 +1160,10 @@ async function firestoreGetLog() {
 
 async function firestoreSaveLog(entry) {
   try {
-    await firebaseDb.collection("log").add(entry);
-    return true;
+    const ref = await firebaseDb.collection("log").add(entry);
+    return ref.id;
   } catch (e) {
-    return false;
+    return null;
   }
 }
 
@@ -1181,13 +1181,14 @@ async function loadLog() {
 }
 
 async function saveLog(newEntry) {
-  const ok = await firestoreSaveLog(newEntry);
-  if (ok) return;
+  const docId = await firestoreSaveLog(newEntry);
+  if (docId) return docId;
   if (STORAGE_MODE === "cloud") {
     await cloudPost({ action: "appendLog", passcode: adminPasscodeEntered, entry: newEntry });
-    return;
+    return null;
   }
   await storageSet(LOG_KEY, JSON.stringify(editLog));
+  return null;
 }
 
 function downloadBackup() {
@@ -1586,11 +1587,16 @@ function renderLog() {
 
     if (e.type === "bulk") {
       const modeText = e.mode === "add" ? "เพิ่มคะแนน (บวก)" : e.mode === "subtract" ? "หักคะแนน (ลบ)" : "แทนที่ค่าเดิม";
+      const canUndo = isAdmin && e.details && e.details.length > 0 && !e.undone && e._docId;
+      const undoBtn = canUndo
+        ? `<button class="btn" style="height:32px;padding:0 12px;font-size:12.5px;margin-top:8px;" onclick="undoImport('${e._docId}')">ยกเลิกการนำเข้านี้</button>`
+        : (e.undone ? `<div style="color:var(--ink-faint);font-size:12.5px;margin-top:6px;">ยกเลิกไปแล้ว</div>` : "");
       return `
         <div class="log-item">
           <div class="top"><span>${timeStr}</span><span><i class="ti ti-file-spreadsheet"></i> นำเข้าไฟล์</span></div>
           <div class="name">${escapeHtml(e.fileName || "ไม่ทราบชื่อไฟล์")}</div>
           <div>อัปเดต <b>${e.count}</b> คน จาก ${e.totalRows} แถวในไฟล์ · วิธี: ${modeText}</div>
+          ${undoBtn}
         </div>
       `;
     }
@@ -1609,6 +1615,64 @@ function renderLog() {
       </div>
     `;
   }).join("");
+}
+
+async function undoImport(docId) {
+  if (!isAdmin) return;
+  const entry = editLog.find(e => e._docId === docId);
+  if (!entry || !entry.details || entry.undone) return;
+
+  const confirmed = confirm(`ยืนยันยกเลิกการนำเข้า "${entry.fileName}" (${entry.details.length} คน)?\nจะหักคะแนนที่เพิ่มไป (หรือคืนคะแนนที่หักไป) กลับให้ตรงกับก่อนนำเข้าครั้งนี้ — ไม่กระทบการแก้ไขอื่นที่ทำหลังจากนั้น`);
+  if (!confirmed) return;
+
+  try {
+    const BATCH_SIZE = 400;
+    const details = entry.details;
+    for (let i = 0; i < details.length; i += BATCH_SIZE) {
+      const chunk = details.slice(i, i + BATCH_SIZE);
+      const batch = firebaseDb.batch();
+      chunk.forEach(d => {
+        const s = findStudent(d.id);
+        if (s) {
+          s.say -= d.sayDelta;
+          s.khun -= d.khunDelta;
+        }
+        const ref = firebaseDb.collection("students").doc(String(d.id));
+        // Use FieldValue.increment so this is correct even if we don't have the student
+        // loaded locally right now (e.g. a very long list) — it always applies relative
+        // to whatever is currently stored, not a stale snapshot.
+        batch.update(ref, {
+          say: firebase.firestore.FieldValue.increment(-d.sayDelta),
+          khun: firebase.firestore.FieldValue.increment(-d.khunDelta)
+        });
+      });
+      await batch.commit();
+    }
+    sessionStorage.removeItem(STUDENTS_CACHE_KEY);
+
+    await firebaseDb.collection("log").doc(docId).update({ undone: true });
+    entry.undone = true;
+
+    const undoLogEntry = {
+      type: "bulk",
+      time: new Date().toISOString(),
+      fileName: "ยกเลิกการนำเข้า: " + (entry.fileName || "ไม่ทราบชื่อไฟล์"),
+      mode: "undo",
+      count: entry.details.length,
+      totalRows: entry.details.length,
+      undone: false
+    };
+    editLog.unshift(undoLogEntry);
+    editLog = editLog.slice(0, LOG_MAX);
+    const newDocId = await saveLog(undoLogEntry);
+    if (newDocId) undoLogEntry._docId = newDocId;
+
+    toast("ยกเลิกการนำเข้าเรียบร้อยแล้ว");
+    renderLog();
+    renderResults();
+  } catch (e) {
+    toast("ยกเลิกไม่สำเร็จ ลองใหม่อีกครั้ง");
+  }
 }
 
 /* ===================== Monthly Excel Import ===================== */
@@ -2009,11 +2073,16 @@ async function applyImport() {
   btn.textContent = "กำลังบันทึก...";
 
   const rollback = [];
+  const details = [];
   toApply.forEach(m => {
     const s = m.student;
-    rollback.push({ s, say: s.say, khun: s.khun });
+    const oldSay = s.say, oldKhun = s.khun;
+    rollback.push({ s, say: oldSay, khun: oldKhun });
     if (m.importSay !== null) s.say = computeNewVal(s.say, m.importSay, mode);
     if (m.importKhun !== null) s.khun = computeNewVal(s.khun, m.importKhun, mode);
+    // Store the exact delta applied (not the absolute before/after) so "undo" can safely
+    // subtract it back out later even if other edits happen to this student in between.
+    details.push({ id: s.id, sayDelta: s.say - oldSay, khunDelta: s.khun - oldKhun });
   });
 
   const ok = await saveImportedStudentsToFirestore(toApply);
@@ -2024,16 +2093,20 @@ async function applyImport() {
     return;
   }
 
-  editLog.unshift({
+  const newLogEntry = {
     type: "bulk",
     time: new Date().toISOString(),
     fileName: currentImportFileName,
     mode: mode,
     count: toApply.length,
-    totalRows: importMatches.length
-  });
+    totalRows: importMatches.length,
+    details: details,
+    undone: false
+  };
+  editLog.unshift(newLogEntry);
   editLog = editLog.slice(0, LOG_MAX);
-  saveLog(editLog[0]); // fire-and-forget — now Firestore-backed (fast) too
+  const docId = await saveLog(newLogEntry); // awaited this time — need the id for the undo button
+  if (docId) newLogEntry._docId = docId;
 
   toast(`นำเข้าข้อมูลสำเร็จ ${toApply.length} คน`);
   renderResults();
