@@ -1147,7 +1147,29 @@ async function saveStudents() {
   return ok;
 }
 
+async function firestoreGetLog() {
+  try {
+    const snap = await firebaseDb.collection("log").orderBy("time", "desc").limit(LOG_MAX).get();
+    const rows = [];
+    snap.forEach(doc => rows.push(doc.data()));
+    return rows;
+  } catch (e) {
+    return null; // Firestore unavailable — caller falls back to Apps Script
+  }
+}
+
+async function firestoreSaveLog(entry) {
+  try {
+    await firebaseDb.collection("log").add(entry);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function loadLog() {
+  const fsLog = await firestoreGetLog();
+  if (fsLog !== null) return fsLog;
   if (STORAGE_MODE === "cloud") {
     return await cloudGetLog();
   }
@@ -1159,6 +1181,8 @@ async function loadLog() {
 }
 
 async function saveLog(newEntry) {
+  const ok = await firestoreSaveLog(newEntry);
+  if (ok) return;
   if (STORAGE_MODE === "cloud") {
     await cloudPost({ action: "appendLog", passcode: adminPasscodeEntered, entry: newEntry });
     return;
@@ -1541,9 +1565,9 @@ async function saveEdit() {
     note: note
   });
   editLog = editLog.slice(0, LOG_MAX);
-  saveLog(editLog[0]); // fire-and-forget — this still goes through Apps Script (slow),
-  // but the score itself is already safely saved in Firestore, so don't make the person
-  // wait for the log entry too; it'll finish in the background.
+  saveLog(editLog[0]); // fire-and-forget — now Firestore-backed (fast) too, but still
+  // don't block the UI on it in case Firestore is briefly unreachable and it falls back
+  // to the slower Apps Script path.
 
   toast("บันทึกการแก้ไขแล้ว");
   closeDetail();
@@ -1953,6 +1977,26 @@ function exportImportReport() {
   URL.revokeObjectURL(url);
 }
 
+async function saveImportedStudentsToFirestore(toApply) {
+  try {
+    const BATCH_SIZE = 400; // Firestore allows up to 500 writes per batch; keep headroom
+    for (let i = 0; i < toApply.length; i += BATCH_SIZE) {
+      const chunk = toApply.slice(i, i + BATCH_SIZE);
+      const batch = firebaseDb.batch();
+      chunk.forEach(m => {
+        const s = m.student;
+        const ref = firebaseDb.collection("students").doc(String(s.id));
+        batch.update(ref, { say: s.say, khun: s.khun });
+      });
+      await batch.commit();
+    }
+    sessionStorage.removeItem(STUDENTS_CACHE_KEY); // scores changed — don't serve the stale cache
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function applyImport() {
   const mode = currentImportMode();
   const toApply = importMatches.filter(m => m.student && m.included);
@@ -1972,7 +2016,7 @@ async function applyImport() {
     if (m.importKhun !== null) s.khun = computeNewVal(s.khun, m.importKhun, mode);
   });
 
-  const ok = await saveStudents();
+  const ok = await saveImportedStudentsToFirestore(toApply);
   if (!ok) {
     rollback.forEach(r => { r.s.say = r.say; r.s.khun = r.khun; });
     btn.disabled = false;
@@ -1989,7 +2033,7 @@ async function applyImport() {
     totalRows: importMatches.length
   });
   editLog = editLog.slice(0, LOG_MAX);
-  saveLog(editLog[0]); // fire-and-forget — don't block on the log entry
+  saveLog(editLog[0]); // fire-and-forget — now Firestore-backed (fast) too
 
   toast(`นำเข้าข้อมูลสำเร็จ ${toApply.length} คน`);
   renderResults();
