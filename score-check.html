@@ -1541,7 +1541,9 @@ async function saveEdit() {
     note: note
   });
   editLog = editLog.slice(0, LOG_MAX);
-  await saveLog(editLog[0]);
+  saveLog(editLog[0]); // fire-and-forget — this still goes through Apps Script (slow),
+  // but the score itself is already safely saved in Firestore, so don't make the person
+  // wait for the log entry too; it'll finish in the background.
 
   toast("บันทึกการแก้ไขแล้ว");
   closeDetail();
@@ -1987,7 +1989,7 @@ async function applyImport() {
     totalRows: importMatches.length
   });
   editLog = editLog.slice(0, LOG_MAX);
-  await saveLog(editLog[0]);
+  saveLog(editLog[0]); // fire-and-forget — don't block on the log entry
 
   toast(`นำเข้าข้อมูลสำเร็จ ${toApply.length} คน`);
   renderResults();
