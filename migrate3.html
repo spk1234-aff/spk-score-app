@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ย้ายประวัติการแก้ไขเก่าเข้า Firestore (ใช้ครั้งเดียว)</title>
+<style>
+  body{font-family:sans-serif;max-width:700px;margin:40px auto;padding:0 20px;background:#F7F5EF;color:#232323;}
+  h1{font-size:20px;color:#16324F;}
+  p{font-size:14px;color:#5C5A53;line-height:1.6;}
+  input[type="password"]{
+    height:44px;width:100%;box-sizing:border-box;border-radius:10px;border:1px solid #E4E0D4;
+    padding:0 14px;font-size:15px;margin-bottom:14px;
+  }
+  button{
+    height:48px;padding:0 24px;border-radius:10px;border:none;background:#16324F;color:#fff;
+    font-size:15px;cursor:pointer;font-weight:600;
+  }
+  button:disabled{background:#ccc;cursor:not-allowed;}
+  pre{
+    background:#fff;border:1px solid #E4E0D4;border-radius:10px;padding:16px;
+    font-size:13px;white-space:pre-wrap;min-height:100px;margin-top:20px;
+  }
+  .warn{background:#FBEAE6;color:#B24334;padding:12px 16px;border-radius:10px;font-size:13.5px;margin-bottom:20px;}
+</style>
+</head>
+<body>
+
+<h1>ย้ายประวัติการแก้ไขเก่าเข้า Firestore</h1>
+<div class="warn">
+  หน้านี้ใช้ครั้งเดียวเท่านั้น! ก่อนกดเริ่ม ต้องเปิดสิทธิ์เขียนชั่วคราวให้ collection "log" ใน Firestore Rules ก่อน (ตามที่ Claude แนะนำ)
+</div>
+<p>กรอกรหัสผ่านแอดมิน (รหัสเดิมที่ใช้กับ Apps Script) แล้วกดปุ่มเพื่อดึงประวัติเก่าทั้งหมดจาก Google Sheet มาเขียนเข้า Firestore</p>
+
+<input type="password" id="passcodeInput" placeholder="รหัสผ่านแอดมิน (Apps Script เดิม)">
+<button id="startBtn">เริ่มย้ายประวัติ</button>
+
+<pre id="log">รอกรอกรหัสผ่านแล้วกดเริ่ม...</pre>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCyjqbIFbG365X_O8w04Padi5eH6BITKTU",
+  authDomain: "spk-score-system.firebaseapp.com",
+  projectId: "spk-score-system",
+  storageBucket: "spk-score-system.firebasestorage.app",
+  messagingSenderId: "568980787667",
+  appId: "1:568980787667:web:daa2a6906b128271151f26"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const API_URL = "https://script.google.com/macros/s/AKfycbxFNF8-eFidJYrKf3bBCmlkz50HF1_NH0IpbybJdNHjgWGJBDmPQpQVH8RYleh8gJ80Fg/exec";
+
+const logEl = document.getElementById("log");
+function log(msg) {
+  logEl.textContent += "\n" + msg;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+document.getElementById("startBtn").onclick = async () => {
+  const passcode = document.getElementById("passcodeInput").value;
+  if (!passcode) {
+    log("กรุณากรอกรหัสผ่านก่อน");
+    return;
+  }
+  const btn = document.getElementById("startBtn");
+  btn.disabled = true;
+  logEl.textContent = "กำลังดึงประวัติเก่าจาก Google Sheet...";
+
+  try {
+    const res = await fetch(API_URL + "?action=log&passcode=" + encodeURIComponent(passcode) + "&_=" + Date.now(), { cache: "no-store" });
+    const data = await res.json();
+    if (!data.ok) {
+      log("ดึงข้อมูลไม่สำเร็จ (รหัสผ่านผิดหรือปัญหาอื่น): " + JSON.stringify(data));
+      btn.disabled = false;
+      return;
+    }
+    const entries = data.log;
+    log(`พบประวัติเก่าทั้งหมด ${entries.length} รายการ กำลังเขียนเข้า Firestore...`);
+
+    const BATCH_SIZE = 400;
+    let total = 0;
+    for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+      const chunk = entries.slice(i, i + BATCH_SIZE);
+      const batch = db.batch();
+      chunk.forEach(entry => {
+        const ref = db.collection("log").doc(); // auto-generated ID, this is an append-only log
+        batch.set(ref, entry);
+      });
+      await batch.commit();
+      total += chunk.length;
+      log(`เขียนแล้ว ${total} / ${entries.length} รายการ...`);
+    }
+
+    log("\n✅ เสร็จสิ้น! ย้ายประวัติการแก้ไขเก่าเข้า Firestore เรียบร้อยแล้ว");
+    log("ตอนนี้กลับไปบอก Claude ได้เลยว่าเสร็จแล้ว เพื่อไปขั้นตอนล็อกความปลอดภัยกลับคืน");
+  } catch (e) {
+    log("เกิดข้อผิดพลาด: " + e.message);
+    btn.disabled = false;
+  }
+};
+</script>
+
+</body>
+</html>
