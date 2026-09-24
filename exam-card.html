@@ -278,9 +278,9 @@
       <button class="btn btn-primary" onclick="saveExamConfigDates()">บันทึกช่วงเวลา</button>
       <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
       <p style="font-size:13.5px;color:var(--ink-soft);margin:0 0 12px;">
-        ปิดช่วงรับบัตรของ "ช่วงที่กำลังเปิดอยู่ตอนนี้" เท่านั้น (ข้อมูลกลางภาค/ปลายภาคแยกกันเก็บอยู่แล้ว ไม่ปนกัน) — นักเรียนที่ยังไม่มารับบัตร จะถูกเพิ่มคะแนนความประพฤติ 50 คะแนนทันที (ทำครั้งเดียว ย้อนกลับไม่ได้)
+        ปิดช่วงรับบัตรของภาคที่ตั้งค่าไว้ด้านบน (ข้อมูลกลางภาค/ปลายภาคแยกกันเก็บอยู่แล้ว ไม่ปนกัน — ไม่เกี่ยวกับว่าวันนี้อยู่ในช่วงวันที่กำหนดหรือไม่) นักเรียนที่ยังไม่มารับบัตร จะถูกเพิ่มคะแนนความประพฤติ 50 คะแนนทันที (ทำครั้งเดียว ย้อนกลับไม่ได้)
       </p>
-      <button class="btn btn-danger" onclick="confirmFinalizeExam()">ปิดช่วงรับบัตร (ช่วงที่เปิดอยู่ตอนนี้)</button>
+      <button class="btn btn-danger" id="finalizeExamBtn" onclick="confirmFinalizeExam()">ปิดช่วงรับบัตรของกลางภาค</button>
       <hr style="border:none;border-top:1px solid var(--line);margin:20px 0;">
       <p style="font-size:13.5px;color:var(--ink-soft);margin:0;">
         เปลี่ยนรหัสผ่านครูบันทึกรับบัตร — ตอนนี้ทำผ่านหน้าเว็บนี้ไม่ได้แล้ว (ระบบเปลี่ยนไปใช้บัญชีเข้าสู่ระบบที่ปลอดภัยกว่าเดิม) ต้องเข้าไปเปลี่ยนที่ Firebase Console > Authentication > Users > บัญชี examcard@spk-score-system.local > Reset password
@@ -575,9 +575,13 @@ function formatThaiDate(iso) {
 function renderRoundBanner() {
   const el = document.getElementById("roundBanner");
   const termLabel = TERM_LABELS[examConfig.activeTerm] || "กลางภาค";
+
+  const finalizeBtn = document.getElementById("finalizeExamBtn");
+  if (finalizeBtn) finalizeBtn.textContent = `ปิดช่วงรับบัตรของ${termLabel}`;
+
   if (!examConfig.startDate || !examConfig.endDate) {
     el.className = "round-banner inactive";
-    el.textContent = `ช่วงที่เปิดอยู่ตอนนี้: ${termLabel} — ยังไม่ได้กำหนดช่วงเวลารับบัตร (รอผู้ดูแลตั้งค่า)`;
+    el.textContent = `ภาคที่กำลังตั้งค่าอยู่: ${termLabel} — ยังไม่ได้กำหนดช่วงเวลารับบัตร (รอผู้ดูแลตั้งค่า)`;
     return;
   }
   const rangeText = `${formatThaiDate(examConfig.startDate)} – ${formatThaiDate(examConfig.endDate)}`;
