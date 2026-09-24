@@ -1553,7 +1553,7 @@ async function saveEdit() {
     return;
   }
 
-  editLog.unshift({
+  const newLogEntry = {
     time: new Date().toISOString(),
     name: s.name,
     id: s.id,
@@ -1563,12 +1563,17 @@ async function saveEdit() {
     sayTo: newSay,
     khunFrom: oldKhun,
     khunTo: newKhun,
-    note: note
-  });
+    note: note,
+    undone: false
+  };
+  editLog.unshift(newLogEntry);
   editLog = editLog.slice(0, LOG_MAX);
-  saveLog(editLog[0]); // fire-and-forget — now Firestore-backed (fast) too, but still
-  // don't block the UI on it in case Firestore is briefly unreachable and it falls back
-  // to the slower Apps Script path.
+  saveLog(newLogEntry).then(docId => { if (docId) newLogEntry._docId = docId; });
+  // Not awaited — this is now Firestore-backed (fast) too, but still don't block the UI
+  // on it in case Firestore is briefly unreachable and it falls back to Apps Script. The
+  // undo button just won't be clickable for a split second until the id comes back.
+  // (newLogEntry is captured directly, not editLog[0], so this stays correct even if the
+  // person makes another edit before this save finishes.)
 
   toast("บันทึกการแก้ไขแล้ว");
   closeDetail();
@@ -1606,12 +1611,17 @@ function renderLog() {
     const parts = [];
     if (sayDelta !== 0) parts.push(`สาย ${e.sayFrom} → ${e.sayTo} <span class="log-delta ${sayDelta > 0 ? 'pos' : 'neg'}">(${sayDelta > 0 ? '+' : ''}${sayDelta})</span>`);
     if (khunDelta !== 0) parts.push(`ความประพฤติ ${e.khunFrom} → ${e.khunTo} <span class="log-delta ${khunDelta > 0 ? 'pos' : 'neg'}">(${khunDelta > 0 ? '+' : ''}${khunDelta})</span>`);
+    const canUndoSingle = isAdmin && !e.undone && e._docId && (sayDelta !== 0 || khunDelta !== 0);
+    const undoSingleBtn = canUndoSingle
+      ? `<button class="btn" style="height:32px;padding:0 12px;font-size:12.5px;margin-top:8px;" onclick="undoImport('${e._docId}')">ยกเลิกการแก้ไขนี้</button>`
+      : (e.undone ? `<div style="color:var(--ink-faint);font-size:12.5px;margin-top:6px;">ยกเลิกไปแล้ว</div>` : "");
     return `
       <div class="log-item">
         <div class="top"><span>${timeStr}</span><span>ม.${e.grade}/${e.room}</span></div>
         <div class="name">${escapeHtml(e.name)} <span style="color:var(--ink-faint);font-weight:400;">(${e.id})</span></div>
         <div>${parts.join(" · ")}</div>
         ${e.note ? `<div style="color:var(--ink-soft);margin-top:4px;">หมายเหตุ: ${escapeHtml(e.note)}</div>` : ""}
+        ${undoSingleBtn}
       </div>
     `;
   }).join("");
@@ -1620,14 +1630,31 @@ function renderLog() {
 async function undoImport(docId) {
   if (!isAdmin) return;
   const entry = editLog.find(e => e._docId === docId);
-  if (!entry || !entry.details || entry.undone) return;
+  if (!entry || entry.undone) return;
 
-  const confirmed = confirm(`ยืนยันยกเลิกการนำเข้า "${entry.fileName}" (${entry.details.length} คน)?\nจะหักคะแนนที่เพิ่มไป (หรือคืนคะแนนที่หักไป) กลับให้ตรงกับก่อนนำเข้าครั้งนี้ — ไม่กระทบการแก้ไขอื่นที่ทำหลังจากนั้น`);
+  // Both entry shapes reduce to the same thing: a list of {id, sayDelta, khunDelta} to
+  // reverse. Bulk imports already store that list directly; a single edit is just a
+  // one-item version of it, computed from its sayFrom/sayTo/khunFrom/khunTo.
+  let details, label, nameForConfirm;
+  if (entry.type === "bulk") {
+    if (!entry.details) return;
+    details = entry.details;
+    nameForConfirm = `"${entry.fileName}" (${entry.details.length} คน)`;
+    label = "ยกเลิกการนำเข้า: " + (entry.fileName || "ไม่ทราบชื่อไฟล์");
+  } else {
+    const sayDelta = entry.sayTo - entry.sayFrom;
+    const khunDelta = entry.khunTo - entry.khunFrom;
+    if (sayDelta === 0 && khunDelta === 0) return;
+    details = [{ id: entry.id, sayDelta, khunDelta }];
+    nameForConfirm = `การแก้ไขของ "${entry.name}"`;
+    label = "ยกเลิกการแก้ไข: " + (entry.name || "ไม่ทราบชื่อ");
+  }
+
+  const confirmed = confirm(`ยืนยันยกเลิก${nameForConfirm}?\nจะหักคะแนนที่เพิ่มไป (หรือคืนคะแนนที่หักไป) กลับให้ตรงกับก่อนหน้านี้ — ไม่กระทบการแก้ไขอื่นที่ทำหลังจากนั้น`);
   if (!confirmed) return;
 
   try {
     const BATCH_SIZE = 400;
-    const details = entry.details;
     for (let i = 0; i < details.length; i += BATCH_SIZE) {
       const chunk = details.slice(i, i + BATCH_SIZE);
       const batch = firebaseDb.batch();
@@ -1656,10 +1683,10 @@ async function undoImport(docId) {
     const undoLogEntry = {
       type: "bulk",
       time: new Date().toISOString(),
-      fileName: "ยกเลิกการนำเข้า: " + (entry.fileName || "ไม่ทราบชื่อไฟล์"),
+      fileName: label,
       mode: "undo",
-      count: entry.details.length,
-      totalRows: entry.details.length,
+      count: details.length,
+      totalRows: details.length,
       undone: false
     };
     editLog.unshift(undoLogEntry);
@@ -1667,7 +1694,7 @@ async function undoImport(docId) {
     const newDocId = await saveLog(undoLogEntry);
     if (newDocId) undoLogEntry._docId = newDocId;
 
-    toast("ยกเลิกการนำเข้าเรียบร้อยแล้ว");
+    toast("ยกเลิกเรียบร้อยแล้ว");
     renderLog();
     renderResults();
   } catch (e) {
@@ -2108,11 +2135,22 @@ async function applyImport() {
   const docId = await saveLog(newLogEntry); // awaited this time — need the id for the undo button
   if (docId) newLogEntry._docId = docId;
 
-  toast(`นำเข้าข้อมูลสำเร็จ ${toApply.length} คน`);
+  toast(`นำเข้าข้อมูลสำเร็จ ${toApply.length} คน — บันทึกแล้ว`);
   renderResults();
+
+  // Clear the whole import UI (not just re-enable the button) — leaving the same preview
+  // and an enabled "apply" button on screen after a successful import is exactly what
+  // caused a duplicate import before: it looked like nothing had happened yet.
   btn.disabled = false;
   btn.textContent = "บันทึกการนำเข้า";
-  document.getElementById("importSummary").textContent += " — บันทึกแล้ว ✓";
+  importMatches = [];
+  importParsedMeta = null;
+  document.getElementById("importPreviewWrap").classList.add("hidden");
+  document.getElementById("importFileInput").value = "";
+  document.getElementById("fileDropText").textContent = "เลือกไฟล์ Excel (.xlsx)";
+  const statusEl = document.getElementById("importStatus");
+  statusEl.classList.remove("hidden", "err");
+  statusEl.textContent = `✓ นำเข้าสำเร็จ ${toApply.length} คนแล้ว — เลือกไฟล์ใหม่เพื่อนำเข้าครั้งถัดไป`;
 }
 
 function exportCSV() {
